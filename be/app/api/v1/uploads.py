@@ -43,7 +43,7 @@ async def upload_image(
 @router.get("/image/{filename}", response_model=ImageUploadResponse)
 async def get_image_details(
     filename: str,
-    subfolder: str = "",
+    subfolder: Optional[str] = None,
     current_user = Depends(get_current_user)
 ):
     """
@@ -160,3 +160,110 @@ async def delete_image(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An error occurred while deleting the file: {str(e)}"
         )
+
+@router.get("/images", response_model=List[ImageUploadResponse])
+async def list_images(
+    subfolder: Optional[str] = None,
+    current_user = Depends(get_current_user)
+):
+    """
+    Liệt kê tất cả các hình ảnh trong một thư mục
+    """
+    # Determine directory to list
+    if subfolder:
+        directory = os.path.join(settings.UPLOAD_DIR, subfolder)
+    else:
+        directory = settings.UPLOAD_DIR
+    
+    # Check if directory exists
+    if not os.path.exists(directory):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Thư mục không tồn tại"
+        )
+    
+    # List files
+    try:
+        files = []
+        for filename in os.listdir(directory):
+            # Skip directories
+            file_path = os.path.join(directory, filename)
+            if os.path.isdir(file_path):
+                continue
+                
+            # Get file details
+            file_size = os.path.getsize(file_path)
+            content_type = "image/jpeg"  # Default
+            
+            # Determine content type based on file extension
+            if filename.lower().endswith(".png"):
+                content_type = "image/png"
+            elif filename.lower().endswith(".gif"):
+                content_type = "image/gif"
+            elif filename.lower().endswith(".bmp"):
+                content_type = "image/bmp"
+            elif filename.lower().endswith(".webp"):
+                content_type = "image/webp"
+            
+            # Build relative path for URL
+            if subfolder:
+                relative_path = os.path.join(subfolder, filename)
+            else:
+                relative_path = filename
+                
+            image_url = f"/uploads/{relative_path}"
+            
+            # Add to list
+            files.append(
+                ImageUploadResponse(
+                    filename=filename,
+                    filepath=relative_path,
+                    content_type=content_type,
+                    size=file_size,
+                    url=image_url
+                )
+            )
+        
+        return files
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Lỗi khi đọc thư mục: {str(e)}"
+        )
+
+@router.get("/view/{filename}")
+async def view_image(
+    filename: str,
+    subfolder: Optional[str] = None,
+):
+    """
+    Xem hình ảnh (trả về nội dung nhị phân của hình ảnh)
+    """
+    from fastapi.responses import FileResponse
+    
+    # Build file path
+    if subfolder:
+        file_path = os.path.join(settings.UPLOAD_DIR, subfolder, filename)
+    else:
+        file_path = os.path.join(settings.UPLOAD_DIR, filename)
+    
+    # Check if file exists
+    if not os.path.exists(file_path):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Không tìm thấy file"
+        )
+    
+    # Determine content type based on file extension
+    content_type = "image/jpeg"  # Default
+    if filename.lower().endswith(".png"):
+        content_type = "image/png"
+    elif filename.lower().endswith(".gif"):
+        content_type = "image/gif"
+    elif filename.lower().endswith(".bmp"):
+        content_type = "image/bmp"
+    elif filename.lower().endswith(".webp"):
+        content_type = "image/webp"
+    
+    # Return file response
+    return FileResponse(file_path, media_type=content_type)
