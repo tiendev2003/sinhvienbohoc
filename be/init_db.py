@@ -9,7 +9,12 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.core.config import settings
 from app.core.security import get_password_hash
-from app.models.models import Base, User
+from app.db.database import Base
+from app.models.models import User
+# Import the Attendance model explicitly
+from app.models.attendance import Attendance
+# Make sure all models are loaded
+import app.models.models
 
 def init_db():
     try:

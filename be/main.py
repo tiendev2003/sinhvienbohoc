@@ -1,6 +1,8 @@
 import uvicorn
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+import os
 
 from app.api.v1.api import api_router
 from app.core.config import settings
@@ -30,6 +32,13 @@ app.add_middleware(
 
 # Đăng ký các API routes
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
+# Tạo thư mục uploads nếu chưa tồn tại
+uploads_dir = os.path.join(os.getcwd(), settings.UPLOAD_DIR)
+os.makedirs(uploads_dir, exist_ok=True)
+
+# Mount static file server for uploads
+app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
 
 # Root endpoint
 @app.get("/")

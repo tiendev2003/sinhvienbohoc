@@ -147,6 +147,81 @@ class StudentResponse(StudentBase):
     class Config:
         from_attributes = True
 
+# ----- Teacher Models -----
+class TeacherBase(BaseModel):
+    teacher_code: str
+    department: Optional[str] = None
+    position: Optional[str] = None
+    specialization: Optional[str] = None
+    qualifications: Optional[str] = None
+    date_of_birth: Optional[date] = None
+    gender: Optional[Gender] = None
+    years_of_experience: Optional[int] = None
+    date_hired: Optional[date] = None
+
+class TeacherCreate(TeacherBase):
+    user_id: int
+
+class TeacherUpdate(BaseModel):
+    department: Optional[str] = None
+    position: Optional[str] = None
+    specialization: Optional[str] = None
+    qualifications: Optional[str] = None
+    date_of_birth: Optional[date] = None
+    gender: Optional[Gender] = None
+    years_of_experience: Optional[int] = None
+    date_hired: Optional[date] = None
+
+class TeacherInDB(TeacherBase):
+    teacher_id: int
+    user_id: int
+
+    class Config:
+        from_attributes = True
+
+class TeacherResponse(TeacherBase):
+    teacher_id: int
+    user: Optional[UserResponse] = None
+
+    class Config:
+        from_attributes = True
+
+# ----- Parent Models -----
+class ParentBase(BaseModel):
+    student_id: int
+    relationship: str
+    occupation: Optional[str] = None
+    education_level: Optional[str] = None
+    income: Optional[float] = None
+    phone_secondary: Optional[str] = None
+    address: Optional[str] = None
+
+class ParentCreate(ParentBase):
+    user_id: int
+
+class ParentUpdate(BaseModel):
+    relationship: Optional[str] = None
+    occupation: Optional[str] = None
+    education_level: Optional[str] = None
+    income: Optional[float] = None
+    phone_secondary: Optional[str] = None
+    address: Optional[str] = None
+
+class ParentInDB(ParentBase):
+    parent_id: int
+    user_id: int
+
+    class Config:
+        from_attributes = True
+
+class ParentResponse(ParentBase):
+    parent_id: int
+    user: Optional[UserResponse] = None
+    student: Optional[StudentResponse] = None
+
+    class Config:
+        from_attributes = True
+
 # ----- Class Models -----
 class ClassBase(BaseModel):
     class_name: str
@@ -186,7 +261,7 @@ class ClassResponse(ClassBase):
     class_id: int
     teacher_id: Optional[int] = None
     current_students: int
-    teacher: Optional[UserResponse] = None
+    teacher: Optional[TeacherResponse] = None
 
     class Config:
         from_attributes = True
@@ -350,6 +425,7 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     username: Optional[str] = None
     role: Optional[UserRole] = None
+    user_id: Optional[int] = None
 
 class LoginRequest(BaseModel):
     username: str

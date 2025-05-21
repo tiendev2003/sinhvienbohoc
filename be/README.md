@@ -106,6 +106,38 @@ alembic revision --autogenerate -m "Add new table"
 alembic upgrade head
 ```
 
+## Dữ liệu giả cho phát triển
+
+Để dễ dàng phát triển và kiểm thử, bạn có thể tạo dữ liệu giả cho hệ thống:
+
+```bash
+# Windows
+generate_fake_data.bat
+
+# Linux/Mac
+chmod +x generate_fake_data.sh
+./generate_fake_data.sh
+```
+
+Dữ liệu giả sẽ tạo ra:
+- Tài khoản người dùng (admin, giáo viên, sinh viên, phụ huynh, và nhân viên tư vấn)
+- Thông tin cá nhân của giáo viên và sinh viên
+- Lớp học và môn học
+- Điểm số sinh viên
+- Thông tin điểm danh
+- Hồ sơ kỷ luật
+- Dữ liệu phân tích nguy cơ bỏ học
+
+### Tài khoản mặc định
+
+| Vai trò | Tên đăng nhập | Mật khẩu |
+|---------|--------------|----------|
+| Admin   | admin        | admin123 |
+| Giáo viên | teacher1     | teacher1 |
+| Sinh viên | student1     | student1 |
+| Phụ huynh | parent1      | parent1  |
+| Nhân viên tư vấn | counselor1  | counselor1 |
+
 ## Công nghệ sử dụng
 
 - Python 3.9+
@@ -116,3 +148,4 @@ alembic upgrade head
 - MySQL
 - Alembic (Database Migrations)
 - scikit-learn (Machine Learning)
+- Faker (Tạo dữ liệu giả)

@@ -22,9 +22,33 @@ class User(Base):
     
     # Relationships
     student = relationship("Student", back_populates="user", uselist=False)
+    teacher = relationship("Teacher", back_populates="user", uselist=False)
+    parent = relationship("Parent", back_populates="user", uselist=False)
     
     def __repr__(self):
         return f"<User {self.username}>"
+
+class Teacher(Base):
+    __tablename__ = "teachers"
+    
+    teacher_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"), unique=True)
+    teacher_code = Column(String(20), unique=True, nullable=False)
+    department = Column(String(100), nullable=True)
+    position = Column(String(100), nullable=True)
+    specialization = Column(String(255), nullable=True)
+    qualifications = Column(Text, nullable=True)
+    date_of_birth = Column(Date, nullable=True)
+    gender = Column(Enum('male', 'female', 'other'), nullable=True)
+    years_of_experience = Column(Integer, nullable=True)
+    date_hired = Column(Date, nullable=True)
+    
+    # Relationships
+    user = relationship("User", back_populates="teacher")
+    classes = relationship("Class", back_populates="teacher")
+    
+    def __repr__(self):
+        return f"<Teacher {self.teacher_code}>"
 
 class Student(Base):
     __tablename__ = "students"
@@ -54,9 +78,31 @@ class Student(Base):
     disciplinary_records = relationship("DisciplinaryRecord", back_populates="student")
     dropout_risks = relationship("DropoutRisk", back_populates="student")
     classes = relationship("ClassStudent", back_populates="student")
+    parents = relationship("Parent", back_populates="student")
+    attendance = relationship("Attendance", back_populates="student")
     
     def __repr__(self):
         return f"<Student {self.student_code}>"
+    
+class Parent(Base):
+    __tablename__ = "parents"
+    
+    parent_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"), unique=True)
+    student_id = Column(Integer, ForeignKey("students.student_id", ondelete="CASCADE"))
+    relation_to_student = Column(Enum('father', 'mother', 'guardian', 'other'), nullable=False)
+    occupation = Column(String(100), nullable=True)
+    education_level = Column(Enum('primary', 'secondary', 'high_school', 'college', 'university', 'post_graduate', 'none'), nullable=True)
+    income = Column(Numeric(10, 2), nullable=True)
+    phone_secondary = Column(String(20), nullable=True)
+    address = Column(String(255), nullable=True)
+    
+    # Relationships
+    user = relationship("User", back_populates="parent")  # Corrected to match User class
+    student = relationship("Student", back_populates="parents")
+    
+    def __repr__(self):
+        return f"<Parent {self.parent_id}>"
 
 class Class(Base):
     __tablename__ = "classes"
@@ -70,14 +116,15 @@ class Class(Base):
     start_date = Column(Date, nullable=True)
     end_date = Column(Date, nullable=True)
     schedule = Column(JSON, nullable=True)
-    teacher_id = Column(Integer, ForeignKey("users.user_id", ondelete="SET NULL"), nullable=True)
+    teacher_id = Column(Integer, ForeignKey("teachers.teacher_id", ondelete="SET NULL"), nullable=True)
     max_students = Column(Integer, nullable=True)
     current_students = Column(Integer, default=0)
     
     # Relationships
-    teacher = relationship("User")
+    teacher = relationship("Teacher", back_populates="classes")
     students = relationship("ClassStudent", back_populates="class_obj")
     grades = relationship("Grade", back_populates="class_obj")
+    attendance = relationship("Attendance", back_populates="class_obj")
     
     def __repr__(self):
         return f"<Class {self.class_name}>"
@@ -135,7 +182,7 @@ class Grade(Base):
     class_obj = relationship("Class", back_populates="grades")
     
     def __repr__(self):
-        return f"<Grade {self.grade_id}>"
+        return f"<Grade {self.grade_id}"
 
 class DisciplinaryRecord(Base):
     __tablename__ = "disciplinary_records"

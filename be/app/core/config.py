@@ -17,6 +17,11 @@ class Settings(BaseSettings):
     DEBUG: bool = os.getenv("DEBUG", "True").lower() == "true"
     API_V1_STR: str = "/api/v1"
     
+    # Cấu hình upload file
+    UPLOAD_DIR: str = os.getenv("UPLOAD_DIR", "uploads")
+    MAX_IMAGE_SIZE: int = int(os.getenv("MAX_IMAGE_SIZE", "10485760"))  # 10MB
+    ALLOWED_IMAGE_TYPES: List[str] = ["image/jpeg", "image/png", "image/jpg", "image/gif"]
+    
     # Cấu hình Database
     DATABASE_URL: str = os.getenv("DATABASE_URL", "mysql+pymysql://root:@localhost:3306/sinhvienbohoc")
     DATABASE_USER: str = os.getenv("DATABASE_USER", "root")
