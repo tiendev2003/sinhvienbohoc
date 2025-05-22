@@ -40,7 +40,7 @@ const Login = () => {  const [credentials, setCredentials] = useState({
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full  ">
       <div className="text-center mb-6">
         <h1 className="text-2xl font-bold">Student Dropout System</h1>
         <h2 className="text-xl mt-2">Sign in to your account</h2>
@@ -102,7 +102,7 @@ const Login = () => {  const [credentials, setCredentials] = useState({
         <div className="mb-6">
           <button
             type="submit"
-            className="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+            className="w-full bg-red-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
             disabled={isLoading}
           >
             {isLoading ? 'Signing in...' : 'Sign in'}

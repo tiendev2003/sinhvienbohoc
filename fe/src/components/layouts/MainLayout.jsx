@@ -142,7 +142,7 @@ const MainLayout = ({ isAuthenticated }) => {
         <div className="flex items-center justify-between px-4 border-b border-gray-700 pb-4">
           {isSidebarOpen ? (
             <>
-              <h2 className="text-xl font-bold">Hệ Thống Quản Lý</h2>
+              <h2 className="text-xl font-bold">PredictAI</h2>
               <button onClick={toggleSidebar} className="p-2 rounded-md hover:bg-gray-700">
                 <ChevronDoubleLeftIcon className="w-5 h-5" />
               </button>
