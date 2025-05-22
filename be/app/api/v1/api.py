@@ -1,6 +1,10 @@
 from fastapi import APIRouter
 
-from app.api.v1 import auth, users, students, teachers, parents, classes, subjects, grades, attendance, disciplinary_records, dropout_risks, uploads
+from app.api.v1 import (
+    auth, users, students, teachers, parents, classes, subjects, 
+    grades, attendance, disciplinary_records, dropout_risks, uploads,
+    class_dropout_risk
+)
 
 api_router = APIRouter()
 
@@ -21,6 +25,9 @@ api_router.include_router(parents.router, prefix="/parents", tags=["parents"])
 
 # Class routes
 api_router.include_router(classes.router, prefix="/classes", tags=["classes"])
+
+# Class dropout risk routes
+api_router.include_router(class_dropout_risk.router, prefix="/classes", tags=["class-dropout-risks"])
 
 # Subject routes
 api_router.include_router(subjects.router, prefix="/subjects", tags=["subjects"])

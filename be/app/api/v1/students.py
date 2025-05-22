@@ -1,16 +1,22 @@
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
 from app.models.models import User, Student
-from app.schemas.schemas import StudentCreate, StudentUpdate, StudentResponse
-from app.crud.student import get_student, get_students, create_student, update_student, delete_student
+from app.schemas.schemas import (
+    StudentCreate, StudentUpdate, StudentResponse, 
+    PaginationParams, SearchParams, PaginatedResponse
+)
+from app.crud.student import (
+    get_student, get_students, create_student, 
+    update_student, delete_student, get_students_paginated
+)
 from app.services.auth import get_current_active_user, check_admin_role, check_teacher_role
 
 router = APIRouter()
 
-@router.get("/", response_model=List[StudentResponse])
+@router.get("/", response_model=List[StudentResponse], deprecated=True)
 async def read_students(
     skip: int = 0, 
     limit: int = 100, 
@@ -19,7 +25,7 @@ async def read_students(
     current_user: User = Depends(get_current_active_user)
 ):
     """
-    Lấy danh sách sinh viên
+    Lấy danh sách sinh viên (không dùng nữa, hãy sử dụng /paginated thay thế)
     """
     # Nếu là sinh viên, chỉ cho phép xem thông tin của bản thân
     if current_user.role == "student":
@@ -31,6 +37,66 @@ async def read_students(
     # Nếu là giáo viên, cố vấn hoặc admin, cho phép xem danh sách
     students = get_students(db, skip=skip, limit=limit, academic_status=academic_status)
     return students
+
+@router.get("/paginated", response_model=PaginatedResponse)
+async def read_students_paginated(
+    page: int = Query(1, ge=1, description="Page number starting from 1"),
+    size: int = Query(10, ge=1, le=100, description="Number of items per page"),
+    query: Optional[str] = Query(None, description="Search query string"),
+    field: Optional[str] = Query(None, description="Field to search in"),
+    academic_status: Optional[str] = Query(None, description="Filter by academic status"),
+    gender: Optional[str] = Query(None, description="Filter by gender"),
+    class_id: Optional[int] = Query(None, description="Filter by class ID"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Lấy danh sách sinh viên với phân trang, tìm kiếm và lọc
+    """
+    # Xử lý phân quyền
+    if current_user.role == "student":
+        student = db.query(Student).filter(Student.user_id == current_user.user_id).first()
+        if not student:
+            return {"items": [], "total": 0, "page": page, "size": size, "pages": 0}
+        return {
+            "items": [student],
+            "total": 1,
+            "page": 1,
+            "size": 1,
+            "pages": 1
+        }
+    
+    # Tạo các tham số phân trang và tìm kiếm
+    pagination = PaginationParams(page=page, size=size)
+    search = SearchParams(query=query, field=field) if query else None
+    
+    # Tạo các tham số lọc
+    filters = {}
+    if academic_status:
+        filters["academic_status"] = academic_status
+    if gender:
+        filters["gender"] = gender
+    if class_id:
+        filters["class_id"] = class_id
+    
+    # Lấy dữ liệu sinh viên với phân trang
+    students, total = get_students_paginated(
+        db=db, 
+        pagination=pagination,
+        search=search,
+        filters=filters
+    )
+    
+    # Tính số trang
+    pages = (total + pagination.size - 1) // pagination.size
+    
+    return {
+        "items": students,
+        "total": total,
+        "page": pagination.page,
+        "size": pagination.size,
+        "pages": pages
+    }
 
 @router.post("/", response_model=StudentResponse, status_code=status.HTTP_201_CREATED)
 async def create_new_student(

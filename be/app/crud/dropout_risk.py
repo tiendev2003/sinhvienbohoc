@@ -4,17 +4,38 @@ from fastapi import HTTPException, status
 from app.models.models import DropoutRisk, Student
 from app.schemas.schemas import DropoutRiskCreate, DropoutRiskUpdate
 from datetime import datetime
+import json
 
 def get_dropout_risk(db: Session, risk_id: int) -> Optional[DropoutRisk]:
-    return db.query(DropoutRisk).filter(DropoutRisk.risk_id == risk_id).first()
+    risk = db.query(DropoutRisk).filter(DropoutRisk.risk_id == risk_id).first()
+    if risk and isinstance(risk.risk_factors, str):
+        try:
+            risk.risk_factors = json.loads(risk.risk_factors)
+        except (json.JSONDecodeError, TypeError):
+            pass
+    return risk
 
 def get_dropout_risks_by_student(db: Session, student_id: int) -> List[DropoutRisk]:
-    return db.query(DropoutRisk).filter(DropoutRisk.student_id == student_id).all()
+    risks = db.query(DropoutRisk).filter(DropoutRisk.student_id == student_id).all()
+    for risk in risks:
+        if isinstance(risk.risk_factors, str):
+            try:
+                risk.risk_factors = json.loads(risk.risk_factors)
+            except (json.JSONDecodeError, TypeError):
+                pass
+    return risks
 
 def get_latest_dropout_risk_by_student(db: Session, student_id: int) -> Optional[DropoutRisk]:
-    return db.query(DropoutRisk).filter(
+    risk = db.query(DropoutRisk).filter(
         DropoutRisk.student_id == student_id
     ).order_by(DropoutRisk.analysis_date.desc()).first()
+    
+    if risk and isinstance(risk.risk_factors, str):
+        try:
+            risk.risk_factors = json.loads(risk.risk_factors)
+        except (json.JSONDecodeError, TypeError):
+            pass
+    return risk
 
 def get_dropout_risks(
     db: Session, 
@@ -31,7 +52,17 @@ def get_dropout_risks(
     if max_risk is not None:
         query = query.filter(DropoutRisk.risk_percentage <= max_risk)
         
-    return query.offset(skip).limit(limit).all()
+    risks = query.offset(skip).limit(limit).all()
+    
+    # Ensure risk_factors is properly parsed from JSON string to dict
+    for risk in risks:
+        if isinstance(risk.risk_factors, str):
+            try:
+                risk.risk_factors = json.loads(risk.risk_factors)
+            except (json.JSONDecodeError, TypeError):
+                pass
+                
+    return risks
 
 def create_dropout_risk(db: Session, dropout_risk: DropoutRiskCreate) -> DropoutRisk:
     # Check if student exists
@@ -42,12 +73,23 @@ def create_dropout_risk(db: Session, dropout_risk: DropoutRiskCreate) -> Dropout
             detail="Student not found"
         )
     
+    # Create dropout risk data
+    risk_data = dropout_risk.dict()
+    
     # Create dropout risk
-    db_dropout_risk = DropoutRisk(**dropout_risk.dict(), analysis_date=datetime.utcnow())
+    db_dropout_risk = DropoutRisk(**risk_data, analysis_date=datetime.utcnow())
     
     db.add(db_dropout_risk)
     db.commit()
     db.refresh(db_dropout_risk)
+    
+    # Ensure risk_factors is properly parsed from JSON string to dict
+    if db_dropout_risk.risk_factors and isinstance(db_dropout_risk.risk_factors, str):
+        try:
+            db_dropout_risk.risk_factors = json.loads(db_dropout_risk.risk_factors)
+        except (json.JSONDecodeError, TypeError):
+            pass
+            
     return db_dropout_risk
 
 def update_dropout_risk(db: Session, risk_id: int, dropout_risk: DropoutRiskUpdate) -> DropoutRisk:
@@ -66,6 +108,14 @@ def update_dropout_risk(db: Session, risk_id: int, dropout_risk: DropoutRiskUpda
     
     db.commit()
     db.refresh(db_dropout_risk)
+    
+    # Ensure risk_factors is properly parsed from JSON string to dict
+    if db_dropout_risk.risk_factors and isinstance(db_dropout_risk.risk_factors, str):
+        try:
+            db_dropout_risk.risk_factors = json.loads(db_dropout_risk.risk_factors)
+        except (json.JSONDecodeError, TypeError):
+            pass
+            
     return db_dropout_risk
 
 def delete_dropout_risk(db: Session, risk_id: int) -> DropoutRisk:

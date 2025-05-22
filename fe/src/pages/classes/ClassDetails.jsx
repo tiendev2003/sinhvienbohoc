@@ -1,1 +1,0 @@
-// Class details page  

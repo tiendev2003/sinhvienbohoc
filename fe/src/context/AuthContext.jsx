@@ -1,113 +1,218 @@
-// Authentication context provider
-import PropTypes from 'prop-types';
-import { createContext, useCallback, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
+import { getProfile, login as loginApi } from '../services/api';
 
-// Create the Auth Context
-export const AuthContext = createContext(null);
+const AuthContext = createContext(null);
 
-// AuthProvider component
+export const useAuth = () => useContext(AuthContext);
+
+// Define user roles and their permissions
+export const USER_ROLES = {
+  ADMIN: 'admin',
+  TEACHER: 'teacher',
+  COUNSELOR: 'counselor',
+  STUDENT: 'student',
+  PARENT: 'parent',
+};
+
+// Define permissions for each module
+export const PERMISSIONS = {
+  DASHBOARD: 'dashboard',
+  // Student related permissions
+  STUDENT_VIEW: 'student_view',
+  STUDENT_CREATE: 'student_create',
+  STUDENT_EDIT: 'student_edit',
+  STUDENT_DELETE: 'student_delete',
+  
+  // Class related permissions
+  CLASS_VIEW: 'class_view',
+  CLASS_CREATE: 'class_create',
+  CLASS_EDIT: 'class_edit',
+  CLASS_DELETE: 'class_delete',
+  
+  // Subject related permissions
+  SUBJECT_VIEW: 'subject_view',
+  SUBJECT_CREATE: 'subject_create',
+  SUBJECT_EDIT: 'subject_edit',
+  SUBJECT_DELETE: 'subject_delete',
+  
+  // Attendance related permissions
+  ATTENDANCE_VIEW: 'attendance_view',
+  ATTENDANCE_CREATE: 'attendance_create',
+  ATTENDANCE_EDIT: 'attendance_edit',
+  
+  // Disciplinary related permissions
+  DISCIPLINARY_VIEW: 'disciplinary_view',
+  DISCIPLINARY_CREATE: 'disciplinary_create',
+  DISCIPLINARY_EDIT: 'disciplinary_edit',
+  DISCIPLINARY_DELETE: 'disciplinary_delete',
+  
+  // Dropout risk related permissions
+  DROPOUT_RISK_VIEW: 'dropout_risk_view',
+  DROPOUT_INTERVENTION_MANAGE: 'dropout_intervention_manage',
+  
+  // Reports related permissions
+  REPORTS_VIEW: 'reports_view',
+  REPORTS_EXPORT: 'reports_export',
+  
+  // User management related permissions
+  USER_VIEW: 'user_view',
+  USER_CREATE: 'user_create',
+  USER_EDIT: 'user_edit',
+  USER_DELETE: 'user_delete',
+  
+  // Parent related permissions
+  PARENT_VIEW: 'parent_view',
+  PARENT_CREATE: 'parent_create',
+  PARENT_EDIT: 'parent_edit',
+  PARENT_DELETE: 'parent_delete',
+};
+
+// Define role-based permissions
+const ROLE_PERMISSIONS = {
+  [USER_ROLES.ADMIN]: Object.values(PERMISSIONS), // Admin has all permissions
+  [USER_ROLES.TEACHER]: [
+    PERMISSIONS.DASHBOARD,
+    PERMISSIONS.STUDENT_VIEW,
+    PERMISSIONS.CLASS_VIEW,
+    PERMISSIONS.SUBJECT_VIEW,
+    PERMISSIONS.ATTENDANCE_VIEW,
+    PERMISSIONS.ATTENDANCE_CREATE,
+    PERMISSIONS.ATTENDANCE_EDIT,
+    PERMISSIONS.DISCIPLINARY_VIEW,
+    PERMISSIONS.DISCIPLINARY_CREATE,
+    PERMISSIONS.DISCIPLINARY_EDIT,
+    PERMISSIONS.DROPOUT_RISK_VIEW,
+  ],
+  [USER_ROLES.COUNSELOR]: [
+    PERMISSIONS.DASHBOARD,
+    PERMISSIONS.STUDENT_VIEW,
+    PERMISSIONS.DROPOUT_RISK_VIEW,
+    PERMISSIONS.DROPOUT_INTERVENTION_MANAGE,
+    PERMISSIONS.DISCIPLINARY_VIEW,
+    PERMISSIONS.DISCIPLINARY_CREATE,
+    PERMISSIONS.DISCIPLINARY_EDIT,
+    PERMISSIONS.REPORTS_VIEW,
+    PERMISSIONS.REPORTS_EXPORT,
+  ],
+  [USER_ROLES.STUDENT]: [
+    PERMISSIONS.DASHBOARD,
+    PERMISSIONS.STUDENT_VIEW, // Only their own data
+    PERMISSIONS.ATTENDANCE_VIEW, // Only their own data
+    PERMISSIONS.DISCIPLINARY_VIEW, // Only their own data
+    PERMISSIONS.DROPOUT_RISK_VIEW, // Only their own data
+  ],
+  [USER_ROLES.PARENT]: [
+    PERMISSIONS.DASHBOARD,
+    PERMISSIONS.STUDENT_VIEW, // Only their children's data
+    PERMISSIONS.ATTENDANCE_VIEW, // Only their children's data
+    PERMISSIONS.DISCIPLINARY_VIEW, // Only their children's data
+    PERMISSIONS.DROPOUT_RISK_VIEW, // Only their children's data
+    PERMISSIONS.PARENT_VIEW, // Only their own data
+  ],
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [userPermissions, setUserPermissions] = useState([]);
 
-  // Check if user is authenticated on initial load
   useEffect(() => {
-    const checkAuthStatus = async () => {
+    // Check if user is authenticated
+    const checkAuth = async () => {
       try {
-        // For now, just check local storage. In production, verify with an API call
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-          setUser(JSON.parse(storedUser));
+        const token = localStorage.getItem('token');
+        if (token) {
+          // Validate token with backend
+          try {
+            const response = await getProfile();
+            const userData = response.data;
+            setUser(userData);
+            
+            setIsAuthenticated(true);
+            // Set permissions based on user role
+            setUserPermissions(ROLE_PERMISSIONS[userData.role] || []);
+          } catch (error) {
+            console.error('Failed to fetch user profile:', error);
+            localStorage.removeItem('token');
+            setIsAuthenticated(false);
+            setUser(null);
+          }
         }
-      } catch (err) {
-        setError(err.message);
-        console.error('Authentication check failed:', err);
+      } catch (error) {
+        console.error('Authentication check failed:', error);
+        localStorage.removeItem('token');
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
 
-    checkAuthStatus();
+    checkAuth();
   }, []);
-
-  // Login function
-  const login = useCallback(async (username, password) => {
-    setLoading(true);
-    setError(null);
-    
+  const login = async (credentials) => {
     try {
-      // Mock API call - in production, this would be a real API call
-      // const response = await authService.login(username, password);
+      // Call login API
+      const response = await loginApi(credentials);
+      const { access_token } = response.data;
       
-      // Mock successful login
-      const mockUser = {
-        id: 1,
-        username,
-        role: 'student', // Default role for demo
-        fullName: 'Demo User',
-        email: `${username}@example.com`
+      localStorage.setItem('token', access_token);
+      
+      // Get user profile using the new token
+      try {
+        const userResponse = await getProfile();
+        const userData = userResponse.data;
+        setUser(userData);
+        setIsAuthenticated(true);
+        // Set permissions based on user role
+        setUserPermissions(ROLE_PERMISSIONS[userData.role] || []);
+      } catch (profileError) {
+        console.error('Failed to fetch user profile:', profileError);
+        localStorage.removeItem('token');
+        return { 
+          success: false, 
+          error: 'Failed to get user profile after login'
+        };
+      }
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Login failed:', error);
+      return { 
+        success: false, 
+        error: error.response?.data?.detail || 'Đăng nhập thất bại. Vui lòng kiểm tra thông tin đăng nhập.' 
       };
-      
-      // Store user in localStorage
-      localStorage.setItem('user', JSON.stringify(mockUser));
-      setUser(mockUser);
-      
-      return mockUser;
-    } catch (err) {
-      setError(err.message || 'Login failed');
-      throw err;
-    } finally {
-      setLoading(false);
     }
-  }, []);
+  };
 
-  // Logout function
-  const logout = useCallback(() => {
-    localStorage.removeItem('user');
+  const logout = () => {
+    localStorage.removeItem('token');
+    setIsAuthenticated(false);
     setUser(null);
-  }, []);
+    setUserPermissions([]);
+  };
 
-  // Register function
-  const register = useCallback(async (userData) => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      // Mock API call - in production, this would be a real API call
-      // const response = await authService.register(userData);
-      
-      // Mock successful registration
-      const mockUser = {
-        id: Math.floor(Math.random() * 1000),
-        username: userData.username,
-        role: userData.role || 'student',
-        fullName: userData.fullName,
-        email: userData.email
-      };
-      
-      return mockUser;
-    } catch (err) {
-      setError(err.message || 'Registration failed');
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // Check if user has a specific permission
+  const hasPermission = (permission) => {
+    return userPermissions.includes(permission);
+  };
+
+  // Check if user has a specific role
+  const hasRole = (role) => {
+    return user?.role === role;
+  };
 
   const value = {
     user,
-    loading,
-    error,
+    isAuthenticated,
+    isLoading,
     login,
     logout,
-    register,
-    isAuthenticated: !!user,
+    hasPermission,
+    hasRole,
+    userPermissions,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-AuthProvider.propTypes = {
-  children: PropTypes.node.isRequired,
-};  
+export default AuthContext;

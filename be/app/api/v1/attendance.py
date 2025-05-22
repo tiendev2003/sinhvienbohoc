@@ -21,6 +21,7 @@ async def read_attendance_records(
     limit: int = Query(100, ge=1, le=1000),
     student_id: Optional[int] = None,
     class_id: Optional[int] = None,
+    date: Optional[date] = None,
     start_date: Optional[date] = None,
     end_date: Optional[date] = None,
     status: Optional[str] = None,
@@ -31,8 +32,12 @@ async def read_attendance_records(
     Lấy danh sách điểm danh với các bộ lọc tùy chọn:
     - ID sinh viên
     - ID lớp học
-    - Khoảng thời gian
+    - Ngày cụ thể 
+    - Khoảng thời gian (start_date và end_date)
     - Trạng thái (present, absent, late, excused)
+    
+    Nếu không cung cấp giá trị cho các tham số, hệ thống sẽ trả về tất cả dữ liệu điểm danh
+    dựa trên quyền của người dùng.
     
     Sinh viên chỉ được xem điểm danh của bản thân.
     """
@@ -77,13 +82,13 @@ async def read_attendance_records(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Không có quyền xem thông tin điểm danh của sinh viên khác"
             )
-    
     records = attendance_crud.get_attendance_records(
         db, 
         skip=skip, 
         limit=limit, 
         student_id=student_id,
         class_id=class_id,
+        date=date,
         start_date=start_date,
         end_date=end_date,
         status=status

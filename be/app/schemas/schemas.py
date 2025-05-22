@@ -189,7 +189,7 @@ class TeacherResponse(TeacherBase):
 # ----- Parent Models -----
 class ParentBase(BaseModel):
     student_id: int
-    relationship: str
+    relation_to_student: str
     occupation: Optional[str] = None
     education_level: Optional[str] = None
     income: Optional[float] = None
@@ -200,7 +200,7 @@ class ParentCreate(ParentBase):
     user_id: int
 
 class ParentUpdate(BaseModel):
-    relationship: Optional[str] = None
+    relation_to_student: Optional[str] = None
     occupation: Optional[str] = None
     education_level: Optional[str] = None
     income: Optional[float] = None
@@ -231,7 +231,7 @@ class ClassBase(BaseModel):
     department: Optional[str] = None
     start_date: Optional[date] = None
     end_date: Optional[date] = None
-    schedule: Optional[Dict[str, Any]] = None
+    schedule: Optional[Any] = None
     max_students: Optional[int] = None
 
 class ClassCreate(ClassBase):
@@ -245,7 +245,7 @@ class ClassUpdate(BaseModel):
     department: Optional[str] = None
     start_date: Optional[date] = None
     end_date: Optional[date] = None
-    schedule: Optional[Dict[str, Any]] = None
+    schedule: Optional[Any] = None
     teacher_id: Optional[int] = None
     max_students: Optional[int] = None
 
@@ -430,3 +430,33 @@ class TokenData(BaseModel):
 class LoginRequest(BaseModel):
     username: str
     password: str
+
+# ----- Pagination and Search Schemas -----
+class PaginationParams(BaseModel):
+    page: int = Field(1, description="Page number starting from 1")
+    size: int = Field(10, description="Number of items per page")
+    
+    @validator('page')
+    def page_must_be_positive(cls, v):
+        if v < 1:
+            raise ValueError('Page number must be positive')
+        return v
+    
+    @validator('size')
+    def size_must_be_positive(cls, v):
+        if v < 1:
+            raise ValueError('Page size must be positive')
+        if v > 100:
+            return 100  # Limit maximum page size
+        return v
+
+class SearchParams(BaseModel):
+    query: Optional[str] = Field(None, description="Search query string")
+    field: Optional[str] = Field(None, description="Field to search in")
+    
+class PaginatedResponse(BaseModel):
+    items: List[Any] = []
+    total: int
+    page: int
+    size: int
+    pages: int

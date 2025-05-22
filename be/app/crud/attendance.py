@@ -17,25 +17,31 @@ def get_attendance_records(
     limit: int = 100,
     student_id: Optional[int] = None,
     class_id: Optional[int] = None,
+    date: Optional[date] = None,
     start_date: Optional[date] = None,
     end_date: Optional[date] = None,
     status: Optional[str] = None
 ) -> List[Attendance]:
     query = db.query(Attendance)
     
-    if student_id is not None:
+    # Only apply filters if they have valid values
+    if student_id is not None and student_id != "":
         query = query.filter(Attendance.student_id == student_id)
     
-    if class_id is not None:
+    if class_id is not None and class_id != "":
         query = query.filter(Attendance.class_id == class_id)
+    
+    # Specific date filter has priority over date range
+    if date and date != "":
+        query = query.filter(Attendance.date == date)
+    else:
+        if start_date and start_date != "":
+            query = query.filter(Attendance.date >= start_date)
+            
+        if end_date and end_date != "":
+            query = query.filter(Attendance.date <= end_date)
         
-    if start_date:
-        query = query.filter(Attendance.date >= start_date)
-        
-    if end_date:
-        query = query.filter(Attendance.date <= end_date)
-        
-    if status:
+    if status and status != "":
         query = query.filter(Attendance.status == status)
         
     return query.order_by(Attendance.date.desc(), Attendance.student_id).offset(skip).limit(limit).all()

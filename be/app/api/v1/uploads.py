@@ -61,7 +61,7 @@ async def get_image_details(
     if not os.path.exists(file_path):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Không tìm thấy file"
+            detail=f"Không tìm thấy file: {file_path}"
         )
     
     # Get file details
@@ -78,7 +78,8 @@ async def get_image_details(
     elif filename.lower().endswith(".webp"):
         content_type = "image/webp"
     
-    # Return the response
+    # Return the response with normalized path separators
+    relative_path = relative_path.replace('\\', '/')  # Normalize path separators
     image_url = f"/uploads/{relative_path}"
     
     return ImageUploadResponse(
@@ -148,7 +149,7 @@ async def delete_image(
     if not os.path.exists(file_path):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="File not found"
+            detail=f"File not found: {file_path}"
         )
     
     # Delete the file
@@ -160,6 +161,63 @@ async def delete_image(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An error occurred while deleting the file: {str(e)}"
         )
+
+@router.get("/uploads-status")
+async def check_uploads_directory(
+    current_user = Depends(get_current_user)
+):
+    """
+    Kiểm tra trạng thái của thư mục uploads
+    """
+    upload_dir = settings.UPLOAD_DIR
+    
+    # Check if uploads directory exists
+    if not os.path.exists(upload_dir):
+        # Try to create it
+        try:
+            os.makedirs(upload_dir, exist_ok=True)
+            return {
+                "status": "created",
+                "message": f"Thư mục uploads đã được tạo: {upload_dir}",
+                "path": upload_dir,
+                "writable": os.access(upload_dir, os.W_OK)
+            }
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": f"Không thể tạo thư mục uploads: {str(e)}",
+                "path": upload_dir
+            }
+    
+    # Directory exists, check if it's a directory and writable
+    if not os.path.isdir(upload_dir):
+        return {
+            "status": "error",
+            "message": f"Đường dẫn uploads không phải là thư mục: {upload_dir}",
+            "path": upload_dir
+        }
+        
+    # Check if directory is writable
+    writable = os.access(upload_dir, os.W_OK)
+    
+    # List files in directory
+    try:
+        files = os.listdir(upload_dir)
+        return {
+            "status": "ok",
+            "message": f"Thư mục uploads tồn tại",
+            "path": upload_dir,
+            "absolute_path": os.path.abspath(upload_dir),
+            "writable": writable,
+            "file_count": len(files),
+            "files": files[:10]  # Show only first 10 files
+        }
+    except Exception as e:
+        return {
+            "status": "error", 
+            "message": f"Lỗi khi đọc thư mục uploads: {str(e)}",
+            "path": upload_dir
+        }
 
 @router.get("/images", response_model=List[ImageUploadResponse])
 async def list_images(
@@ -175,12 +233,10 @@ async def list_images(
     else:
         directory = settings.UPLOAD_DIR
     
-    # Check if directory exists
+    # Check if directory exists and create if not
     if not os.path.exists(directory):
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Thư mục không tồn tại"
-        )
+        os.makedirs(directory, exist_ok=True)
+        return []  # Return empty list for new directory
     
     # List files
     try:
@@ -189,6 +245,10 @@ async def list_images(
             # Skip directories
             file_path = os.path.join(directory, filename)
             if os.path.isdir(file_path):
+                continue
+                
+            # Skip non-image files
+            if not any(filename.lower().endswith(ext) for ext in ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp']):
                 continue
                 
             # Get file details
@@ -251,7 +311,7 @@ async def view_image(
     if not os.path.exists(file_path):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Không tìm thấy file"
+            detail=f"Không tìm thấy file: {file_path}"
         )
     
     # Determine content type based on file extension
@@ -265,5 +325,5 @@ async def view_image(
     elif filename.lower().endswith(".webp"):
         content_type = "image/webp"
     
-    # Return file response
-    return FileResponse(file_path, media_type=content_type)
+    # Return file response with disable_cache=True to prevent browser caching
+    return FileResponse(path=file_path, media_type=content_type, filename=filename)

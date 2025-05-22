@@ -1,6 +1,7 @@
 from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
+import json
 
 from app.db.database import get_db
 from app.models.models import User, Student
@@ -36,10 +37,20 @@ async def read_dropout_risks(
         student = db.query(Student).filter(Student.user_id == current_user.user_id).first()
         if not student:
             return []
-        return get_dropout_risks_by_student(db, student_id=student.student_id)
-        
-    # Nếu là giáo viên, cố vấn hoặc admin, cho phép xem tất cả
-    return get_dropout_risks(db, skip=skip, limit=limit, min_risk=min_risk, max_risk=max_risk)
+        risks = get_dropout_risks_by_student(db, student_id=student.student_id)
+    else:
+        # Nếu là giáo viên, cố vấn hoặc admin, cho phép xem tất cả
+        risks = get_dropout_risks(db, skip=skip, limit=limit, min_risk=min_risk, max_risk=max_risk)
+    
+    # Đảm bảo risk_factors là dictionary
+    for risk in risks:
+        if risk.risk_factors and isinstance(risk.risk_factors, str):
+            try:
+                risk.risk_factors = json.loads(risk.risk_factors)
+            except (json.JSONDecodeError, TypeError):
+                risk.risk_factors = {}
+    
+    return risks
 
 @router.post("/", response_model=DropoutRiskResponse, status_code=status.HTTP_201_CREATED)
 async def create_new_dropout_risk(
@@ -73,6 +84,13 @@ async def read_dropout_risk(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Không đủ quyền truy cập thông tin đánh giá của sinh viên khác"
             )
+    
+    # Đảm bảo risk_factors là dictionary
+    if db_risk.risk_factors and isinstance(db_risk.risk_factors, str):
+        try:
+            db_risk.risk_factors = json.loads(db_risk.risk_factors)
+        except (json.JSONDecodeError, TypeError):
+            db_risk.risk_factors = {}
     
     return db_risk
 
@@ -122,7 +140,47 @@ async def predict_student_dropout_risk(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
             detail="Không thể thực hiện dự báo cho sinh viên này"
         )
+    
+    # Đảm bảo risk_factors là dictionary
+    if "risk_factors" in result and isinstance(result["risk_factors"], str):
+        try:
+            result["risk_factors"] = json.loads(result["risk_factors"])
+        except (json.JSONDecodeError, TypeError):
+            result["risk_factors"] = {}
+            
+    return result
+
+@router.post("/recalculate/{student_id}", response_model=Dict[str, Any])
+async def recalculate_student_dropout_risk(
+    student_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(lambda: check_teacher_role(current_user=get_current_active_user()))
+):
+    """
+    Tính toán lại nguy cơ bỏ học cho sinh viên
+    """
+    # Kiểm tra sinh viên tồn tại
+    student = db.query(Student).filter(Student.student_id == student_id).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Không tìm thấy sinh viên")
         
+    # Thực hiện dự báo
+    prediction_service = DropoutRiskPredictionService(db)
+    result = prediction_service.predict_dropout_risk(student_id)
+    
+    if not result:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            detail="Không thể thực hiện dự báo cho sinh viên này"
+        )
+    
+    # Đảm bảo risk_factors là dictionary
+    if "risk_factors" in result and isinstance(result["risk_factors"], str):
+        try:
+            result["risk_factors"] = json.loads(result["risk_factors"])
+        except (json.JSONDecodeError, TypeError):
+            result["risk_factors"] = {}
+            
     return result
 
 @router.post("/predict-all", response_model=List[Dict[str, Any]])
@@ -135,4 +193,13 @@ async def predict_all_students_dropout_risk(
     """
     prediction_service = DropoutRiskPredictionService(db)
     results = prediction_service.predict_all_students()
+    
+    # Đảm bảo risk_factors là dictionary cho mỗi kết quả
+    for result in results:
+        if "risk_factors" in result and isinstance(result["risk_factors"], str):
+            try:
+                result["risk_factors"] = json.loads(result["risk_factors"])
+            except (json.JSONDecodeError, TypeError):
+                result["risk_factors"] = {}
+                
     return results

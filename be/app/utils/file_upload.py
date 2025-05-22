@@ -27,9 +27,7 @@ class FileUploader:
             raise HTTPException(
                 status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
                 detail=f"File too large. Maximum allowed size: {max_size_mb} MB"
-            )
-
-    @staticmethod
+            )    @staticmethod
     def save_image(file: UploadFile, subfolder: str = "") -> str:
         """Save image to disk and return its path"""
         # Create uploads directory if it doesn't exist
@@ -37,21 +35,28 @@ class FileUploader:
         if subfolder:
             upload_dir = upload_dir / subfolder
         
+        # Create directory if it doesn't exist
         os.makedirs(upload_dir, exist_ok=True)
         
         # Generate unique filename
         file_ext = os.path.splitext(file.filename)[1]
+        if not file_ext:  # If no extension, default to jpg
+            file_ext = ".jpg"
+            
         unique_filename = f"{uuid.uuid4()}{file_ext}"
         file_path = os.path.join(upload_dir, unique_filename)
         
         # Save the file
         try:
+            # Reset file pointer to the beginning
+            file.file.seek(0)
+            
             with open(file_path, "wb") as f:
                 f.write(file.file.read())
             
             # Return relative path for database storage
             if subfolder:
-                return f"{subfolder}/{unique_filename}"
+                return f"{subfolder}/{unique_filename}".replace('\\', '/')
             return unique_filename
         except Exception as e:
             raise HTTPException(
