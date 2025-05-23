@@ -3,7 +3,8 @@ import { useAuth } from '../../context/AuthContext';
 
 const ProtectedRoute = ({ 
   requiredPermission = null, 
-  requiredRole = null, 
+  requiredRole = null,
+  skipPermissionCheckForRole = null,
   redirectPath = '/login',
   children 
 }) => {
@@ -22,6 +23,11 @@ const ProtectedRoute = ({
   // If not authenticated, redirect to login
   if (!isAuthenticated) {
     return <Navigate to={redirectPath} state={{ from: location }} replace />;
+  }
+
+  // Skip permission check if user has the specified role
+  if (skipPermissionCheckForRole && hasRole(skipPermissionCheckForRole)) {
+    return children ? children : <Outlet />;
   }
 
   // Check for required permission

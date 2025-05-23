@@ -195,19 +195,48 @@ const StudentForm = () => {
           } catch (err) {
             console.error('Error adding student to class:', err);
           }
-        }
-      } else {
-        // For new student
-        const response = await createStudent(studentData);
-        const newStudentId = response?.data?.student_id;
+        }      } else {
+        // For new student, first create a user, then create the student
+        // Step 1: Create a user with the provided information
+        const userData = {
+          full_name: formData.full_name,
+          email: formData.email,
+          phone: formData.phone,
+          role: "student",  // Set role to student
+          username: formData.email.split('@')[0],  // Generate username from email
+          password: formData.email, // Default password that should be changed later
+        };
         
-        // Add to class if a class was selected
-        if (formData.class_id && newStudentId) {
-          try {
-            await addStudentToClass(formData.class_id, newStudentId);
-          } catch (err) {
-            console.error('Error adding student to class:', err);
+        try {
+          // Create the user first
+          const userResponse = await createUser(userData);
+          const userId = userResponse?.data?.user_id;
+          
+          if (!userId) {
+            throw new Error('Failed to get user ID after creating user');
           }
+          
+          // Now create the student with the user_id
+          const studentWithUserId = {
+            ...studentData,
+            user_id: userId,
+          };
+          delete studentWithUserId.user; // Remove the nested user object
+          
+          const response = await createStudent(studentWithUserId);
+          const newStudentId = response?.data?.student_id;
+          
+          // Add to class if a class was selected
+          if (formData.class_id && newStudentId) {
+            try {
+              await addStudentToClass(formData.class_id, newStudentId);
+            } catch (err) {
+              console.error('Error adding student to class:', err);
+            }
+          }
+        } catch (err) {
+          console.error('Error in user or student creation:', err);
+          throw err; // Re-throw to be caught by the outer try-catch
         }
       }
       navigate('/students', { state: { message: isEditMode ? 'Student updated successfully' : 'Student created successfully' } });

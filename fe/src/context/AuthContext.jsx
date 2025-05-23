@@ -48,10 +48,13 @@ export const PERMISSIONS = {
   // Dropout risk related permissions
   DROPOUT_RISK_VIEW: "dropout_risk_view",
   DROPOUT_INTERVENTION_MANAGE: "dropout_intervention_manage",
-
   // Reports related permissions
   REPORTS_VIEW: "reports_view",
   REPORTS_EXPORT: "reports_export",
+
+  // Grade related permissions
+  GRADE_VIEW: "grade_view",
+  GRADE_EDIT: "grade_edit",
 
   // User management related permissions
   USER_VIEW: "user_view",
@@ -62,7 +65,7 @@ export const PERMISSIONS = {
 
 // Define role-based permissions
 const ROLE_PERMISSIONS = {
-  [USER_ROLES.ADMIN]: Object.values(PERMISSIONS), // Admin has all permissions
+  [USER_ROLES.ADMIN]: Object.values(PERMISSIONS), // Admin has all permissions  [USER_ROLES.TEACHER]: [
   [USER_ROLES.TEACHER]: [
     PERMISSIONS.DASHBOARD,
     PERMISSIONS.STUDENT_VIEW,
@@ -75,6 +78,8 @@ const ROLE_PERMISSIONS = {
     PERMISSIONS.DISCIPLINARY_CREATE,
     PERMISSIONS.DISCIPLINARY_EDIT,
     PERMISSIONS.DROPOUT_RISK_VIEW,
+    PERMISSIONS.GRADE_VIEW,
+    PERMISSIONS.GRADE_EDIT,
   ],
   [USER_ROLES.COUNSELOR]: [
     PERMISSIONS.DASHBOARD,
@@ -93,6 +98,7 @@ const ROLE_PERMISSIONS = {
     PERMISSIONS.ATTENDANCE_VIEW, // Only their own data
     PERMISSIONS.DISCIPLINARY_VIEW, // Only their own data
     PERMISSIONS.DROPOUT_RISK_VIEW, // Only their own data
+    PERMISSIONS.GRADE_VIEW, // Only their own data
   ],
   [USER_ROLES.PARENT]: [
     PERMISSIONS.DASHBOARD,

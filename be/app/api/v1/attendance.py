@@ -233,6 +233,8 @@ async def update_attendance_record(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Không đủ quyền cập nhật bản ghi điểm danh"
         )
+    print(f"User role: {current_user.role}")
+    print(f"User ID: {current_user.user_id}")
     
     db_attendance = attendance_crud.get_attendance(db, attendance_id=attendance_id)
     if not db_attendance:
@@ -240,10 +242,15 @@ async def update_attendance_record(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Không tìm thấy bản ghi điểm danh"
         )
+    print(f"Attendance class_id: {db_attendance.class_id}")
     
     # Nếu là giáo viên, kiểm tra xem có phụ trách lớp này không
     if current_user.role == "teacher":
         teacher = db.query(Teacher).filter(Teacher.user_id == current_user.user_id).first()
+        print(f"Found teacher: {teacher is not None}")
+        if teacher:
+            print(f"Teacher ID: {teacher.teacher_id}")
+        
         if not teacher:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -253,6 +260,11 @@ async def update_attendance_record(
         # Kiểm tra xem giáo viên có phụ trách lớp này không
         from app.models.models import Class
         class_obj = db.query(Class).filter(Class.class_id == db_attendance.class_id).first()
+        print(f"Found class: {class_obj is not None}")
+        if class_obj:
+            print(f"Class teacher_id: {class_obj.teacher_id}")
+            print(f"Teacher ID matches: {class_obj.teacher_id == teacher.teacher_id}")
+        
         if not class_obj or class_obj.teacher_id != teacher.teacher_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

@@ -1,5 +1,5 @@
 from typing import List, Optional, Dict, Any, Union
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from fastapi import HTTPException, status
 from datetime import date
 
@@ -44,7 +44,8 @@ def create_disciplinary_record(db: Session, record: DisciplinaryRecordCreate) ->
         )
     
     # Create disciplinary record
-    db_record = DisciplinaryRecord(**record.dict())
+    record_data = record.dict()
+    db_record = DisciplinaryRecord(**record_data)
     
     db.add(db_record)
     db.commit()
@@ -116,12 +117,19 @@ def update_disciplinary_record(db: Session, record_id: int, record: Disciplinary
     return db_record
 
 def delete_disciplinary_record(db: Session, record_id: int) -> DisciplinaryRecord:
-    db_record = get_disciplinary_record(db, record_id=record_id)
+    # Use eager loading for student and user relationships
+    db_record = db.query(DisciplinaryRecord).options(
+        joinedload(DisciplinaryRecord.student).joinedload(Student.user)
+    ).filter(DisciplinaryRecord.record_id == record_id).first()
+    
     if not db_record:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Disciplinary record not found"
         )
+    
+    # Create a new record instance to return
+    record_to_return = db_record
     
     # Adjust student warning count if this is a severe record
     if db_record.severity_level == "severe":
@@ -136,9 +144,11 @@ def delete_disciplinary_record(db: Session, record_id: int) -> DisciplinaryRecor
                 student.academic_status = "good"
             elif student.previous_academic_warning == 2:
                 student.academic_status = "warning"
-                
+            
             db.commit()
     
+    # Delete the record
     db.delete(db_record)
     db.commit()
-    return db_record
+    
+    return record_to_return

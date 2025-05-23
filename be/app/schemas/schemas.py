@@ -53,6 +53,16 @@ class SeverityLevel(str, Enum):
     MODERATE = "moderate"
     SEVERE = "severe"
 
+class ResolutionStatus(str, Enum):
+    OPEN = "open"
+    PENDING = "pending"
+    RESOLVED = "resolved"
+
+class ResolutionStatus(str, Enum):
+    OPEN = "open"
+    PENDING = "pending"
+    RESOLVED = "resolved"
+
 # ----- Base Models -----
 class UserBase(BaseModel):
     username: str
@@ -136,12 +146,26 @@ class StudentInDB(StudentBase):
     class Config:
         from_attributes = True
 
-class StudentResponse(StudentBase):
+class StudentResponse(BaseModel):
     student_id: int
+    user_id: int
+    student_code: str    
+    name: Optional[str] = None
+    email: Optional[str] = None
+    phone_number: Optional[str] = None
+    date_of_birth: Optional[date] = None
+    gender: Optional[str] = None
+    hometown: Optional[str] = None
+    current_address: Optional[str] = None
+    family_income_level: Optional[str] = None
+    family_background: Optional[str] = None
+    scholarship_status: Optional[str] = None
+    scholarship_amount: Optional[float] = None
+    health_condition: Optional[str] = None
+    mental_health_status: Optional[str] = None
+    attendance_rate: Optional[float] = None
+    academic_status: Optional[str] = None
     user: Optional[UserResponse] = None
-    attendance_rate: float
-    previous_academic_warning: int
-    academic_status: AcademicStatus
 
     class Config:
         from_attributes = True
@@ -338,24 +362,39 @@ class DisciplinaryRecordBase(BaseModel):
     violation_description: Optional[str] = None
     violation_date: date
     severity_level: SeverityLevel
+    consequences: Optional[str] = None
+    resolution_status: Optional[ResolutionStatus] = ResolutionStatus.OPEN
+    resolution_notes: Optional[str] = None
+    resolution_date: Optional[date] = None
 
 class DisciplinaryRecordCreate(DisciplinaryRecordBase):
-    pass
+    created_by: Optional[int] = None
 
 class DisciplinaryRecordUpdate(BaseModel):
     violation_description: Optional[str] = None
     violation_date: Optional[date] = None
     severity_level: Optional[SeverityLevel] = None
+    consequences: Optional[str] = None
+    resolution_status: Optional[ResolutionStatus] = None
+    resolution_notes: Optional[str] = None
+    resolution_date: Optional[date] = None
 
 class DisciplinaryRecordInDB(DisciplinaryRecordBase):
     record_id: int
+    created_by: Optional[int] = None
+    created_at: datetime
+    updated_at: datetime
 
     class Config:
         from_attributes = True
 
 class DisciplinaryRecordResponse(DisciplinaryRecordBase):
     record_id: int
+    created_by: Optional[int] = None
+    created_at: datetime
+    updated_at: datetime
     student: Optional[StudentResponse] = None
+    creator: Optional[UserResponse] = None
 
     class Config:
         from_attributes = True

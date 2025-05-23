@@ -17,6 +17,7 @@ import Unauthorized from "./pages/auth/Unauthorized";
 import Dashboard from "./pages/Dashboard";
 
 // Student Pages
+import MyClasses from "./pages/student/MyClasses";
 import StudentDetail from "./pages/student/StudentDetail";
 import StudentForm from "./pages/student/StudentForm";
 import StudentList from "./pages/student/StudentList";
@@ -53,6 +54,10 @@ import AcademicPerformanceReport from "./pages/reports/AcademicPerformanceReport
 import AttendanceAnalytics from "./pages/reports/AttendanceAnalytics";
 import ReportsDashboard from "./pages/reports/ReportsDashboard";
 
+// Grade Management
+import GradeManagement from "./pages/grade/GradeManagement";
+import StudentGradeDetail from "./pages/grade/StudentGradeDetail";
+
 // User Management
 import UserForm from "./pages/user/UserForm";
 import UserList from "./pages/user/UserList";
@@ -60,6 +65,10 @@ import UserList from "./pages/user/UserList";
 // Context
 import { AuthProvider } from "./context/AuthContext";
 import StudentClassForm from "./pages/class/StudentClassForm";
+import EditDisciplinaryForm from "./pages/disciplinary/EditDisciplinaryForm";
+
+// Profile Pages
+import StudentProfile from "./pages/profile/StudentProfile";
 
 function App() {
   const [isLoading, setIsLoading] = useState(true);
@@ -107,6 +116,16 @@ function App() {
             }
           />
 
+          {/* Profile Route */}
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <StudentProfile />
+              </ProtectedRoute>
+            }
+          />
+
           {/* Student Routes */}
           <Route
             path="/students"
@@ -137,6 +156,14 @@ function App() {
             element={
               <ProtectedRoute requiredPermission="student_edit">
                 <StudentForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/students/my-classes"
+            element={
+              <ProtectedRoute requiredPermission="student_view">
+                <MyClasses />
               </ProtectedRoute>
             }
           />
@@ -195,7 +222,10 @@ function App() {
           <Route
             path="/attendance"
             element={
-              <ProtectedRoute requiredPermission="attendance_view">
+              <ProtectedRoute
+                requiredPermission="attendance_view"
+                requiredRole="teacher"
+              >
                 <AttendanceList />
               </ProtectedRoute>
             }
@@ -203,7 +233,10 @@ function App() {
           <Route
             path="/attendance/take"
             element={
-              <ProtectedRoute requiredPermission="attendance_edit">
+              <ProtectedRoute
+                requiredPermission="attendance_edit"
+                requiredRole="teacher"
+              >
                 <TakeAttendance />
               </ProtectedRoute>
             }
@@ -211,7 +244,10 @@ function App() {
           <Route
             path="/attendance/report"
             element={
-              <ProtectedRoute requiredPermission="attendance_view">
+              <ProtectedRoute
+                requiredPermission="attendance_view"
+                requiredRole="teacher"
+              >
                 <AttendanceReport />
               </ProtectedRoute>
             }
@@ -231,6 +267,14 @@ function App() {
             element={
               <ProtectedRoute requiredPermission="disciplinary_edit">
                 <AddDisciplinaryRecord />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/disciplinary/edit/:id"
+            element={
+              <ProtectedRoute requiredPermission="disciplinary_edit">
+                <EditDisciplinaryForm />
               </ProtectedRoute>
             }
           />
@@ -342,6 +386,30 @@ function App() {
                 requiredRole="admin"
               >
                 <UserForm />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Grade Management Routes */}
+          <Route
+            path="/grades"
+            element={
+              <ProtectedRoute
+                requiredPermission="grade_view"
+                requiredRole="teacher"
+              >
+                <GradeManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/students/:studentId/grades"
+            element={
+              <ProtectedRoute
+                requiredPermission="grade_view"
+                requiredRole="teacher"
+              >
+                <StudentGradeDetail />
               </ProtectedRoute>
             }
           />

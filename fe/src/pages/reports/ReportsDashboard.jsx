@@ -1,9 +1,9 @@
 // File: ReportsDashboard.jsx - Central hub for all reports and analytics
 import {
-  AcademicCapIcon,
-  ChartBarIcon,
-  ClipboardDocumentCheckIcon,
-  ExclamationTriangleIcon
+    AcademicCapIcon,
+    ChartBarIcon,
+    ClipboardDocumentCheckIcon,
+    ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 import { useState } from 'react';
 import { Link } from 'react-router';
@@ -183,8 +183,7 @@ const ReportsDashboard = () => {
               Attendance Tracking
             </Link>
           )}
-          
-          {hasPermission(PERMISSIONS.GRADES_VIEW) && (
+            {hasPermission(PERMISSIONS.GRADE_VIEW) && (
             <Link 
               to="/grades"
               className="flex items-center px-4 py-3 bg-red-50 rounded-md hover:bg-red-100 transition-colors"

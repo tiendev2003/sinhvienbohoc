@@ -18,7 +18,6 @@ router = APIRouter()
 async def read_classes(
     skip: int = Query(0, ge=0), 
     limit: int = Query(100, ge=1, le=1000),
-    teacher_id: Optional[int] = None,
     department: Optional[str] = None,
     academic_year: Optional[str] = None,
     semester: Optional[str] = None,
@@ -27,11 +26,49 @@ async def read_classes(
 ):
     """
     Lấy danh sách lớp học với các bộ lọc tùy chọn:
-    - ID giáo viên
     - Bộ môn/khoa
     - Năm học
     - Học kỳ
+    
+    Admin có thể xem tất cả các lớp.
+    Giáo viên chỉ có thể xem các lớp mà họ phụ trách.
+    Sinh viên chỉ có thể xem các lớp mà họ đang tham gia.
     """
+    teacher_id = None
+    class_filter = None
+    
+    # Nếu là giáo viên, chỉ xem được lớp của mình
+    if current_user.role == "teacher":
+        teacher = db.query(Teacher).filter(Teacher.user_id == current_user.user_id).first()
+        if not teacher:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Không tìm thấy thông tin giáo viên"
+            )
+        teacher_id = teacher.teacher_id
+    
+    # Nếu là sinh viên, chỉ xem được lớp mình tham gia
+    elif current_user.role == "student":
+        student = db.query(Student).filter(Student.user_id == current_user.user_id).first()
+        if not student:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Không tìm thấy thông tin sinh viên"
+            )
+        
+        # Lấy danh sách ID của các lớp mà sinh viên đang tham gia
+        enrolled_class_ids = (
+            db.query(ClassStudent.class_id)
+            .filter(
+                ClassStudent.student_id == student.student_id,
+                ClassStudent.status == "enrolled"
+            )
+            .all()
+        )
+        class_filter = [class_id[0] for class_id in enrolled_class_ids]
+        if not class_filter:  # Nếu sinh viên không tham gia lớp nào
+            return []
+    
     classes = class_crud.get_classes(
         db, 
         skip=skip, 
@@ -39,7 +76,8 @@ async def read_classes(
         teacher_id=teacher_id,
         department=department,
         academic_year=academic_year,
-        semester=semester
+        semester=semester,
+        class_filter=class_filter
     )
     return classes
 

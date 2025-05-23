@@ -183,12 +183,7 @@ const DisciplinaryDetail = () => {
                   {getSeverityText(record.severity_level)}
                 </span>
               </p>
-              <p className="flex items-center">
-                <span className="font-medium w-40">Trạng Thái:</span> 
-                <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(record.resolution_status)}`}>
-                  {getStatusText(record.resolution_status)}
-                </span>
-              </p>
+              
               <p className="flex items-start">
                 <span className="font-medium w-40">Mô Tả Vi Phạm:</span> 
                 <span className="flex-1">{record.violation_description}</span>
@@ -225,22 +220,11 @@ const DisciplinaryDetail = () => {
                 <span className="font-medium w-40">Số điện thoại:</span> 
                 <span>{record.student?.user?.phone || "Không có thông tin"}</span>
               </p>
-              <p className="flex items-center">
-                <span className="font-medium w-40">Tỷ lệ tham dự:</span> 
-                <span>{record.student?.attendance_rate ? `${record.student.attendance_rate}%` : "Không có thông tin"}</span>
-              </p>
+              
             </div>
             
-            <h2 className="text-xl font-semibold mt-8 mb-4">Thông Tin Xử Lý</h2>
-            <div className="space-y-3">
-              <p className="flex items-center">
-                <span className="font-medium w-40">Người Lập:</span> 
-                <span>{record.created_by || "Không có thông tin"}</span>
-              </p>
-              <p className="flex items-center">
-                <span className="font-medium w-40">Ngày Lập:</span> 
-                <span>{record.created_at || "Không có thông tin"}</span>
-              </p>
+             <div className="space-y-3">
+              
               {record.resolution_status === 'resolved' && (
                 <>
                   <p className="flex items-center">

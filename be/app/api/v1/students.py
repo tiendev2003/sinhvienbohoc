@@ -11,7 +11,8 @@ from app.schemas.schemas import (
 )
 from app.crud.student import (
     get_student, get_students, create_student, 
-    update_student, delete_student, get_students_paginated
+    update_student, delete_student, get_students_paginated,
+    get_student_by_user_id
 )
 from app.services.auth import get_current_active_user, check_admin_role, check_teacher_role
 
@@ -109,6 +110,92 @@ async def create_new_student(
     Tạo sinh viên mới, chỉ admin mới có quyền
     """
     return create_student(db=db, student=student)
+
+@router.get("/profile", response_model=StudentResponse)
+async def get_student_profile(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Lấy thông tin profile của học sinh hiện tại
+    """
+    if current_user.role != "student":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Chỉ học sinh mới có thể xem profile của mình"
+        )
+    
+    # Get student info
+    student = (
+        db.query(Student)
+        .filter(Student.user_id == current_user.user_id)
+        .first()
+    )
+    
+    if not student:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Không tìm thấy thông tin học sinh"
+        )
+    
+    # Create response data with both user and student info
+    response_data = {
+        "student_id": student.student_id,
+        "user_id": student.user_id,
+        "student_code": student.student_code,        "name": current_user.full_name,
+        "email": current_user.email,
+        "phone_number": current_user.phone,
+        "date_of_birth": student.date_of_birth,
+        "gender": student.gender,
+        "hometown": student.hometown,
+        "current_address": student.current_address,
+        "family_income_level": student.family_income_level,
+        "family_background": student.family_background,
+        "scholarship_status": student.scholarship_status,
+        "scholarship_amount": float(student.scholarship_amount) if student.scholarship_amount else None,
+        "health_condition": student.health_condition,
+        "mental_health_status": student.mental_health_status,
+        "attendance_rate": student.attendance_rate,
+        "academic_status": student.academic_status
+    }
+    
+    # Convert to StudentResponse model
+    return StudentResponse(**response_data)
+
+@router.put("/profile", response_model=StudentResponse)
+async def update_student_profile(
+    student_update: StudentUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Cập nhật thông tin profile của học sinh
+    """
+    if current_user.role != "student":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Chỉ học sinh mới có thể cập nhật profile của mình"
+        )
+    
+    student = get_student_by_user_id(db, current_user.user_id)
+    if not student:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Không tìm thấy thông tin học sinh"
+        )
+    
+    # Giới hạn các trường được phép cập nhật
+    allowed_fields = ["email", "phone_number", "current_address"]
+    update_data = {k: v for k, v in student_update.dict(exclude_unset=True).items() 
+                  if k in allowed_fields}
+    
+    # Cập nhật thông tin
+    for key, value in update_data.items():
+        setattr(student, key, value)
+    
+    db.commit()
+    db.refresh(student)
+    return student
 
 @router.get("/{student_id}", response_model=StudentResponse)
 async def read_student(

@@ -11,10 +11,11 @@ import {
   HomeIcon,
   ArrowRightOnRectangleIcon as LogoutIcon,
   UserGroupIcon,
+  UserIcon,
 } from "@heroicons/react/24/outline";
 import { useEffect, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router";
-import { PERMISSIONS, useAuth, USER_ROLES } from "../../context/AuthContext";
+import { PERMISSIONS, useAuth } from "../../context/AuthContext";
 
 const MainLayout = ({ isAuthenticated }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
@@ -49,7 +50,6 @@ const MainLayout = ({ isAuthenticated }) => {
     logout();
     navigate("/login");
   };
-
   // Menu items grouped by categories with required permissions
   const menuGroups = [
     {
@@ -61,6 +61,12 @@ const MainLayout = ({ isAuthenticated }) => {
           permission: PERMISSIONS.DASHBOARD,
           icon: HomeIcon,
         },
+        {
+          path: "/profile",
+          label: "Thông tin cá nhân",
+          permission: PERMISSIONS.DASHBOARD,
+          icon: UserIcon,
+        },
       ],
     },
     {
@@ -71,18 +77,42 @@ const MainLayout = ({ isAuthenticated }) => {
           label: "Học Sinh",
           permission: PERMISSIONS.STUDENT_VIEW,
           icon: UserGroupIcon,
+          roles: ["admin"], // Chỉ admin mới có thể xem danh sách học sinh
+        },
+        {
+          path: "/students/my-classes",
+          label: "Lớp Học Của Tôi",
+          permission: PERMISSIONS.DASHBOARD,
+          icon: AcademicCapIcon,
+      
         },
         {
           path: "/classes",
-          label: "Lớp Học",
+          label: "Quản Lý Lớp Học",
           permission: PERMISSIONS.CLASS_VIEW,
           icon: AcademicCapIcon,
+          roles: ["admin", "teacher"], // Chỉ admin và giáo viên mới thấy menu này
+        },
+        {
+          path: "/teachers",
+          label: "Giáo Viên",
+          permission: PERMISSIONS.TEACHER_VIEW,
+          icon: UserIcon,
+          roles: ["admin", "teacher", "counselor"], // Only visible to these roles
         },
         {
           path: "/subjects",
           label: "Môn Học",
           permission: PERMISSIONS.SUBJECT_VIEW,
           icon: BookOpenIcon,
+          roles: ["admin"], // Chỉ admin mới có thể xem danh sách môn học
+        },
+        {
+          path: "/grades",
+          label: "Quản lý Điểm",
+          permission: PERMISSIONS.GRADE_VIEW,
+          icon: DocumentIcon,
+          roles: ["teacher"], // Only teachers can see grades management
         },
       ],
     },
@@ -117,7 +147,7 @@ const MainLayout = ({ isAuthenticated }) => {
           label: "Người Dùng",
           permission: PERMISSIONS.USER_VIEW,
           icon: CogIcon,
-          roles: [USER_ROLES.ADMIN],
+          roles: ["admin"], // Only admins can see user management
         },
       ],
     },

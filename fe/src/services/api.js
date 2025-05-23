@@ -2,7 +2,7 @@ import axios from "axios";
 
 // Create axios instance with base URL and default headers
 const api = axios.create({
-  baseURL: "http://localhost:8000/api/v1",
+  baseURL: "http://localhost:8001/api/v1",
   headers: {
     "Content-Type": "application/json",
   },
@@ -57,6 +57,11 @@ export const fetchStudentDisciplinary = (id) =>
   api.get(`/students/${id}/disciplinary`);
 export const fetchStudentDropoutRisk = (id) =>
   api.get(`/students/${id}/dropout-risk`);
+export const getStudentClasses = (studentId) => api.get(`/students/${studentId}/classes`);
+
+// Student Profile APIs
+export const getStudentProfile = () => api.get('/students/profile');
+export const updateStudentProfile = (data) => api.put('/students/profile', data);
 
 // Class APIs
 export const fetchClasses = (params) => api.get("/classes", { params });
@@ -96,7 +101,7 @@ export const fetchAttendanceByFilters = ({ class_id, date, status }) => {
   if (class_id) params.class_id = class_id;
   if (date) params.date = date;
   if (status) params.status = status;
-  
+
   // Add parameter to request detailed information including student and class names
   params.include_details = true;
 
@@ -166,7 +171,12 @@ export const createUser = (data) => api.post("/users", data);
 export const updateUser = (id, data) => api.put(`/users/${id}`, data);
 export const deleteUser = (id) => api.delete(`/users/${id}`);
 
- export const fetchDisciplinaryRecordById = (id) => api.get(`/disciplinary-records/${id}`);
+// Grade APIs
+export const fetchGrades = (params) => api.get("/grades", { params });
+export const fetchGradeById = (id) => api.get(`/grades/${id}`);
+export const createGrade = (data) => api.post("/grades", data);
+export const updateGrade = (id, data) => api.put(`/grades/${id}`, data);
+export const deleteGrade = (id) => api.delete(`/grades/${id}`);
 
 export { api };
 

@@ -66,11 +66,14 @@ class Student(Base):
     health_condition = Column(Text, nullable=True)
     mental_health_status = Column(Text, nullable=True)
     attendance_rate = Column(Float, default=100.0)
-    previous_academic_warning = Column(Integer, default=0)
     academic_status = Column(Enum('good', 'warning', 'probation', 'suspended'), default='good')
-    entry_year = Column(Integer, nullable=True)
-    expected_graduation_year = Column(Integer, nullable=True)
-      # Relationships
+    
+    # These fields will be populated from User model
+    name = None 
+    email = None
+    phone_number = None
+    
+    # Relationships
     user = relationship("User", back_populates="student")
     grades = relationship("Grade", back_populates="student")
     disciplinary_records = relationship("DisciplinaryRecord", back_populates="student")
@@ -170,9 +173,17 @@ class DisciplinaryRecord(Base):
     violation_description = Column(Text, nullable=True)
     violation_date = Column(Date, nullable=False)
     severity_level = Column(Enum('minor', 'moderate', 'severe'), nullable=False)
+    consequences = Column(Text, nullable=True)  # Hậu quả/biện pháp xử lý
+    resolution_status = Column(Enum('open', 'pending', 'resolved'), default='open', nullable=False)  # Trạng thái xử lý
+    resolution_notes = Column(Text, nullable=True)  # Ghi chú giải quyết
+    resolution_date = Column(Date, nullable=True)  # Ngày giải quyết
+    created_by = Column(Integer, ForeignKey("users.user_id", ondelete="SET NULL"), nullable=True)  # Người tạo bản ghi
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
     
     # Relationships
     student = relationship("Student", back_populates="disciplinary_records")
+    creator = relationship("User", foreign_keys=[created_by])
     
     def __repr__(self):
         return f"<DisciplinaryRecord {self.record_id}>"

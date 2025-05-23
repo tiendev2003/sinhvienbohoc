@@ -78,6 +78,9 @@ async def create_new_disciplinary_record(
             detail="Không đủ quyền tạo biên bản kỷ luật"
         )
     
+    # Set người tạo bản ghi
+    record.created_by = current_user.user_id
+    
     return disciplinary_crud.create_disciplinary_record(db=db, record=record)
 
 @router.get("/{record_id}", response_model=DisciplinaryRecordResponse)

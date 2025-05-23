@@ -9,6 +9,7 @@ import {
   fetchClassById,
   fetchStudentsByClass,
   submitAttendance,
+  submitBulkAttendance,
   updateAttendance
 } from '../../services/api';
 import { fetchSubjectsByClass } from '../../services/class_subject_api';
@@ -239,6 +240,76 @@ const ClassDetail = () => {
       alert('Failed to update attendance. Please try again.');
     }
   };
+  // Mark all students as present
+  const handleMarkAllPresent = async () => {
+    try {
+      setAttendanceLoading(true);
+      setAttendanceError(null);
+
+      // Create attendance records for all students
+      const attendanceRecords = students.map(student => ({
+        student_id: student.student_id,
+        class_id: parseInt(id),
+        date: selectedDate,
+        status: 'present',
+        minutes_late: 0,
+        notes: ''
+      }));
+
+      // Submit bulk attendance
+      await submitBulkAttendance({
+        class_id: parseInt(id),
+        date: selectedDate,
+        records: attendanceRecords
+      });
+
+      // Refresh attendance data
+      await fetchAttendanceData();
+      
+    } catch (error) {
+      setAttendanceError(error.response?.data?.detail || error.message);
+    } finally {
+      setAttendanceLoading(false);
+    }
+  };
+  // Fetch attendance data
+  const fetchAttendanceData = async () => {
+    try {
+      setAttendanceLoading(true);
+      setAttendanceError(null);
+      
+      const response = await fetchAttendanceByClass(id, selectedDate);
+      setAttendanceRecords(response?.data || []);
+      
+    } catch (error) {
+      setAttendanceError(error.response?.data?.detail || error.message);
+    } finally {
+      setAttendanceLoading(false);
+    }
+  };
+
+  // Fetch all attendance records to get unique dates
+  const fetchAttendanceDates = async () => {
+    try {
+      const response = await fetchAttendanceByFilters({ class_id: id });
+      if (response?.data) {
+        // Extract unique dates and sort them in descending order
+        const uniqueDates = [...new Set(response.data.map(record => record.date))];
+        uniqueDates.sort((a, b) => new Date(b) - new Date(a));
+        setAttendanceDates(uniqueDates);
+      }
+    } catch (error) {
+      console.error('Error fetching attendance dates:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchAttendanceData();
+  }, [selectedDate]);
+
+  useEffect(() => {
+    fetchAttendanceDates();
+  }, []);
 
   // Define columns for students table  
   const studentColumns = [
@@ -565,8 +636,7 @@ const ClassDetail = () => {
 
       <div className="bg-white rounded-lg shadow-md p-6">
         <div className="mb-4">
-          <div className="flex border-b">
-            <button
+          <div className="flex border-b">            <button
               className={`px-4 py-2 ${activeTab === 'students' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-600 hover:text-blue-500'}`}
               onClick={() => setActiveTab('students')}
             >
@@ -578,6 +648,14 @@ const ClassDetail = () => {
             >
               Môn học
             </button>
+            {hasPermission(PERMISSIONS.GRADE_VIEW) && (
+              <button
+                className={`px-4 py-2 ${activeTab === 'grades' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-600 hover:text-blue-500'}`}
+                onClick={() => setActiveTab('grades')}
+              >
+                Điểm số
+              </button>
+            )}
             <button
               className={`px-4 py-2 ${activeTab === 'performance' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-600 hover:text-blue-500'}`}
               onClick={() => setActiveTab('performance')}
@@ -733,6 +811,43 @@ const ClassDetail = () => {
                   Lớp học này chưa có môn học nào. Vui lòng thêm môn học cho lớp.
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Grades Tab Content */}
+          {activeTab === 'grades' && (
+            <div>
+              {hasPermission(PERMISSIONS.GRADE_EDIT) ? (
+                <div className="flex justify-end mb-4">
+                  <Link
+                    to={`/grades?classId=${id}`}
+                    className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+                  >
+                    Quản lý điểm số
+                  </Link>
+                </div>
+              ) : null}
+              
+              <div className="mb-6">
+                <h3 className="text-lg font-medium mb-3">Thông tin điểm số</h3>
+                <p className="text-gray-600">
+                  Để xem và quản lý điểm số chi tiết của sinh viên trong lớp này, 
+                  vui lòng truy cập trang quản lý điểm số qua liên kết phía trên.
+                </p>
+                <p className="text-gray-600 mt-2">
+                  Tại đó, bạn có thể nhập điểm thành phần, xem điểm tổng kết, và xuất báo cáo điểm số.
+                </p>
+              </div>
+              
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-medium text-gray-800 mb-2">Lưu ý về quản lý điểm số:</h4>
+                <ul className="list-disc pl-6 text-gray-600 space-y-1">
+                  <li>Điểm quá trình: chiếm 20% tổng điểm</li>
+                  <li>Điểm giữa kỳ: chiếm 30% tổng điểm</li>
+                  <li>Điểm cuối kỳ: chiếm 50% tổng điểm</li>
+                  <li>Điểm tổng kết được tính tự động dựa trên công thức trên</li>
+                </ul>
+              </div>
             </div>
           )}
 

@@ -337,12 +337,20 @@ const StudentDetail = () => {
               <p className="text-gray-500">No class records found.</p>
             )}
           </div>
-        )}
-
-        {/* Academic Tab */}
+        )}        {/* Academic Tab */}
         {activeTab === 'academic' && (
           <div>
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">Grade Information</h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold text-gray-800">Grade Information</h2>
+              {hasPermission(PERMISSIONS.GRADE_VIEW) && (
+                <Link 
+                  to={`/students/${id}/grades`}
+                  className="px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600 text-sm"
+                >
+                  View Detailed Grades
+                </Link>
+              )}
+            </div>
             {student.grades?.length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">

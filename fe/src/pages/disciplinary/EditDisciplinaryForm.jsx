@@ -1,130 +1,110 @@
-// File: DisciplinaryForm.jsx - Form để thêm/sửa bản ghi kỷ luật
+// File: EditDisciplinaryForm.jsx
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import {
-  createDisciplinaryRecord,
-  fetchClasses,
-  fetchDisciplinaryById,
-  fetchStudentsByClass,
-  updateDisciplinaryRecord,
+    fetchClasses,
+    fetchDisciplinaryById,
+    fetchStudentsByClass,
+    updateDisciplinaryRecord,
 } from "../../services/api";
 
-const DisciplinaryForm = () => {
+const EditDisciplinaryForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const isEditing = !!id;
-  const [loading, setLoading] = useState(isEditing);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [students, setStudents] = useState([]);
   const [classes, setClasses] = useState([]);
+  const [students, setStudents] = useState([]);
   const [selectedClassId, setSelectedClassId] = useState("");
-  const [loadingStudents, setLoadingStudents] = useState(false);
   const [loadingClasses, setLoadingClasses] = useState(true);
+  const [loadingStudents, setLoadingStudents] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
     student_id: "",
-    violation_date: new Date().toISOString().split("T")[0],
+    violation_date: "",
     violation_description: "",
     severity_level: "minor",
     consequences: "",
     resolution_status: "open",
     resolution_notes: "",
-    resolution_date: "",
   });
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch available classes first
+        setLoading(true);
         setLoadingClasses(true);
-        const classesResponse = await fetchClasses();
-        setClasses(classesResponse?.data || mockClasses);
-        setLoadingClasses(false);
 
-        // If editing, fetch disciplinary record details
-        if (isEditing) {
-          setLoading(true);
-          const response = await fetchDisciplinaryById(id);
-          const record = response?.data || {};          setFormData({
+        // Fetch record data
+        const recordResponse = await fetchDisciplinaryById(id);
+        const record = recordResponse?.data;
+
+        if (record) {
+          setFormData({
             student_id: record.student_id || "",
-            violation_date:
-              record.violation_date || new Date().toISOString().split("T")[0],
+            class_id: record.student?.class_id || "",
+            violation_date: record.violation_date || "",
             violation_description: record.violation_description || "",
             severity_level: record.severity_level || "minor",
             consequences: record.consequences || "",
             resolution_status: record.resolution_status || "open",
             resolution_notes: record.resolution_notes || "",
-            resolution_date: record.resolution_date || "",
           });
 
-          // If there's a class_id in the record, fetch students for that class
-          if (record.class_id) {
-            await fetchStudentsForClass(record.class_id);
+          // Nếu có class_id từ thông tin học sinh
+          if (record.student?.class_id) {
+            setSelectedClassId(record.student.class_id.toString());
+            await fetchStudentsForClass(record.student.class_id.toString());
           }
 
-          setLoading(false);
+          // Fetch all classes
+          const classesResponse = await fetchClasses();
+          setClasses(classesResponse?.data || []);
+          setLoadingClasses(false);
+
+          // If record has a class_id, fetch its students
+          if (record.class_id) {
+            setSelectedClassId(record.class_id);
+            await fetchStudentsForClass(record.class_id);
+          }
         }
+
+        setLoading(false);
       } catch (err) {
         console.error("Error fetching data:", err);
-        setError("Failed to load data");
+        setError("Failed to fetch record data");
         setLoading(false);
         setLoadingClasses(false);
-
-        // For development, use mock data
-        setClasses(mockClasses);
-        if (isEditing) {
-          const mockRecord = mockDisciplinaryRecord;          setFormData({
-            student_id: mockRecord.student_id,
-            violation_date: mockRecord.violation_date,
-            violation_description: mockRecord.violation_description,
-            severity_level: mockRecord.severity_level,
-            consequences: mockRecord.consequences || "",
-            resolution_status: mockRecord.resolution_status || "open",
-            resolution_notes: mockRecord.resolution_notes || "",
-            resolution_date: mockRecord.resolution_date || "",
-          });
-        }
       }
     };
 
     fetchData();
-  }, [id, isEditing]);
+  }, [id]);
 
   const fetchStudentsForClass = async (classId) => {
     try {
       setLoadingStudents(true);
       const response = await fetchStudentsByClass(classId);
-      setStudents(response?.data || mockStudents);
-      setSelectedClassId(classId);
+      setStudents(response?.data || []);
       setLoadingStudents(false);
     } catch (err) {
       console.error("Error fetching students:", err);
       setLoadingStudents(false);
-      setStudents(mockStudents); // For development
+      setStudents([]);
     }
   };
 
   const handleClassChange = async (e) => {
     const classId = e.target.value;
+    setSelectedClassId(classId);
+    setFormData((prev) => ({ ...prev, student_id: "" }));
+
     if (classId) {
       await fetchStudentsForClass(classId);
     } else {
       setStudents([]);
-      setSelectedClassId("");
-      setFormData((prev) => ({ ...prev, student_id: "" }));
     }
-  };
-
-  const handleResolutionStatusChange = (e) => {
-    const newStatus = e.target.value;
-    setFormData((prev) => ({
-      ...prev,
-      resolution_status: newStatus,
-      resolution_date:
-        newStatus === "resolved"
-          ? new Date().toISOString().split("T")[0]
-          : "",
-    }));
   };
 
   const handleChange = (e) => {
@@ -134,102 +114,66 @@ const DisciplinaryForm = () => {
       [name]: value,
     }));
   };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     try {
-      const dataToSubmit = { ...formData };
-      // Only include student_id if one was selected
-      if (!dataToSubmit.student_id) {
-        delete dataToSubmit.student_id;
-      }
+      setSubmitting(true);
+      setError(null); // Tạo object chứa dữ liệu cần cập nhật
+      const updateData = {
+        student_id: formData.student_id || null,
+        class_id: selectedClassId || null,
+        violation_date: formData.violation_date,
+        violation_description: formData.violation_description,
+        severity_level: formData.severity_level,
+        consequences: formData.consequences,
+        resolution_status: formData.resolution_status,
+        resolution_notes: formData.resolution_notes,
+      };
 
-      if (isEditing) {
-        await updateDisciplinaryRecord(id, dataToSubmit);
-      } else {
-        await createDisciplinaryRecord(dataToSubmit);
-      }
-
-      navigate("/disciplinary");
+      await updateDisciplinaryRecord(id, updateData);
+      navigate(`/disciplinary/${id}`);
     } catch (err) {
-      console.error("Error saving disciplinary record:", err);
-      setError("Failed to save disciplinary record");
+      console.error("Error updating record:", err);
+      setError("Failed to update record");
+      setSubmitting(false);
     }
-  };
-
-  // Mock data for development
-  const mockStudents = [
-    {
-      student_id: 43,
-      user: { full_name: "Susan Mendoza" },
-      student_code: "SV100042",
-    },
-    {
-      student_id: 44,
-      user: { full_name: "Trần Thị B" },
-      student_code: "SV100043",
-    },
-  ];
-
-  const mockClasses = [
-    { class_id: 1, class_name: "10A1" },
-    { class_id: 2, class_name: "10A2" },
-    { class_id: 3, class_name: "11A1" },
-  ];
-
-  const mockDisciplinaryRecord = {
-    record_id: 1,
-    student_id: 43,
-    violation_description: "Disrupting class",
-    violation_date: "2023-12-31",
-    severity_level: "moderate",
-    consequences: "Write a letter of apology and after-school detention",
-    resolution_status: "open",
-    resolution_notes: "",
-    student: {
-      student_code: "SV100042",
-      student_id: 43,
-      user: {
-        full_name: "Susan Mendoza",
-        user_id: 64,
-      },
-    },
   };
 
   if (loading || loadingClasses) {
     return <div className="flex justify-center p-8">Đang tải...</div>;
   }
 
+  if (error) {
+    return (
+      <div className="bg-red-100 p-4 text-red-700 rounded-md">{error}</div>
+    );
+  }
+
   return (
     <div className="container mx-auto p-4">
       <div className="flex items-center mb-6">
         <Link
-          to="/disciplinary"
+          to={`/disciplinary/${id}`}
           className="mr-4 text-blue-500 hover:text-blue-700"
         >
           ← Quay lại
         </Link>
         <h1 className="text-2xl font-bold text-gray-800">
-          {isEditing ? "Chỉnh Sửa Vi Phạm Kỷ Luật" : "Thêm Vi Phạm Kỷ Luật Mới"}
+          Chỉnh Sửa Vi Phạm Kỷ Luật
         </h1>
       </div>
-
-      {error && (
-        <div className="bg-red-100 p-4 text-red-700 rounded-md mb-6">
-          {error}
-        </div>
-      )}
 
       <div className="bg-white rounded-lg shadow-md p-6">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Class Selection First */}
+            {/* Class Selection */}
             <div>
               <label
                 className="block text-sm font-medium text-gray-700 mb-2"
                 htmlFor="class_id"
               >
-                Lớp <span className="text-red-500">*</span>
+                Lớp
               </label>
               <select
                 id="class_id"
@@ -253,7 +197,7 @@ const DisciplinaryForm = () => {
                 className="block text-sm font-medium text-gray-700 mb-2"
                 htmlFor="student_id"
               >
-                Học Sinh <span className="text-red-500">*</span>
+                Học Sinh
               </label>
               <select
                 id="student_id"
@@ -261,13 +205,12 @@ const DisciplinaryForm = () => {
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 value={formData.student_id}
                 onChange={handleChange}
-                disabled={loadingStudents}
+                disabled={!selectedClassId || loadingStudents}
               >
                 <option value="">-- Chọn Học Sinh --</option>
                 {students.map((student) => (
-                  <option key={student.student.student_id} value={student.student.student_id}>
-                    {student.student.user?.full_name || "Unknown"} (
-                    {student.student.student_code})
+                  <option key={student.student_id} value={student.student_id}>
+                    {student.user?.full_name} ({student.student_code})
                   </option>
                 ))}
               </select>
@@ -296,24 +239,6 @@ const DisciplinaryForm = () => {
               />
             </div>
 
-            <div className="md:col-span-2">
-              <label
-                className="block text-sm font-medium text-gray-700 mb-2"
-                htmlFor="violation_description"
-              >
-                Mô Tả Vi Phạm <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                id="violation_description"
-                name="violation_description"
-                rows="4"
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                value={formData.violation_description}
-                onChange={handleChange}
-                required
-              ></textarea>
-            </div>
-
             <div>
               <label
                 className="block text-sm font-medium text-gray-700 mb-2"
@@ -333,6 +258,24 @@ const DisciplinaryForm = () => {
                 <option value="moderate">Trung bình</option>
                 <option value="severe">Nghiêm trọng</option>
               </select>
+            </div>
+
+            <div className="md:col-span-2">
+              <label
+                className="block text-sm font-medium text-gray-700 mb-2"
+                htmlFor="violation_description"
+              >
+                Mô Tả Vi Phạm <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                id="violation_description"
+                name="violation_description"
+                rows="4"
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                value={formData.violation_description}
+                onChange={handleChange}
+                required
+              ></textarea>
             </div>
 
             <div>
@@ -364,29 +307,12 @@ const DisciplinaryForm = () => {
                 name="resolution_status"
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 value={formData.resolution_status}
-                onChange={handleResolutionStatusChange}
+                onChange={handleChange}
               >
                 <option value="open">Đang xử lý</option>
                 <option value="pending">Đang chờ xử lý</option>
-                <option value="resolved">Đã giải quyết</option>              </select>
-            </div>
-
-            <div>
-              <label
-                className="block text-sm font-medium text-gray-700 mb-2"
-                htmlFor="resolution_date"
-              >
-                Ngày Giải Quyết
-              </label>
-              <input
-                type="date"
-                id="resolution_date"
-                name="resolution_date"
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
-                value={formData.resolution_date}
-                onChange={handleChange}
-                disabled={formData.resolution_status !== "resolved"}
-              />
+                <option value="resolved">Đã giải quyết</option>
+              </select>
             </div>
 
             <div className="md:col-span-2">
@@ -409,7 +335,7 @@ const DisciplinaryForm = () => {
 
           <div className="flex justify-end gap-2 pt-4">
             <Link
-              to="/disciplinary"
+              to={`/disciplinary/${id}`}
               className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
             >
               Hủy
@@ -417,8 +343,9 @@ const DisciplinaryForm = () => {
             <button
               type="submit"
               className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+              disabled={submitting}
             >
-              {isEditing ? "Cập Nhật" : "Thêm Mới"}
+              {submitting ? "Đang Cập Nhật..." : "Cập Nhật"}
             </button>
           </div>
         </form>
@@ -427,4 +354,4 @@ const DisciplinaryForm = () => {
   );
 };
 
-export default DisciplinaryForm;
+export default EditDisciplinaryForm;

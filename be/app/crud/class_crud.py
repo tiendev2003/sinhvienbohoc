@@ -14,7 +14,8 @@ def get_classes(
     teacher_id: Optional[int] = None,
     department: Optional[str] = None,
     academic_year: Optional[str] = None,
-    semester: Optional[str] = None
+    semester: Optional[str] = None,
+    class_filter: Optional[List[int]] = None
 ) -> List[Class]:
     query = db.query(Class)
     
@@ -29,6 +30,10 @@ def get_classes(
         
     if semester:
         query = query.filter(Class.semester == semester)
+        
+    # Nếu có class_filter, chỉ lấy các lớp có ID trong danh sách
+    if class_filter:
+        query = query.filter(Class.class_id.in_(class_filter))
         
     return query.offset(skip).limit(limit).all()
 
