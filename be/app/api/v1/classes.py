@@ -6,7 +6,8 @@ from app.db.database import get_db
 from app.models.models import User, Class, ClassStudent, Teacher, Student
 from app.schemas.schemas import (
     ClassCreate, ClassUpdate, ClassResponse, 
-    ClassStudentCreate, ClassStudentUpdate, ClassStudentResponse
+    ClassStudentCreate, ClassStudentUpdate, ClassStudentResponse,
+    StudentResponse
 )
 from app.crud import class_crud
 from app.services.auth import get_current_active_user, check_admin_role, check_teacher_role
@@ -166,15 +167,19 @@ async def read_class_students(
     
     return class_crud.get_students_in_class(db, class_id=class_id, skip=skip, limit=limit)
 
-@router.post("/{class_id}/students", response_model=ClassStudentResponse)
-async def add_student_to_class(
+from typing import List
+from fastapi import Body
+
+@router.post("/{class_id}/students", response_model=List[ClassStudentResponse])
+async def add_students_to_class(
     class_id: int,
-    student_id: int,
+    student_ids: List[int] = Body(..., embed=True),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
     """
     Thêm sinh viên vào lớp học. Admin và giáo viên phụ trách lớp có quyền.
+    Có thể thêm một hoặc nhiều sinh viên cùng lúc.
     """
     # Kiểm tra quyền
     if current_user.role not in ["admin", "teacher"]:
@@ -199,7 +204,7 @@ async def add_student_to_class(
                 detail="Không có quyền quản lý lớp này"
             )
     
-    return class_crud.add_student_to_class(db=db, class_id=class_id, student_id=student_id)
+    return class_crud.add_students_bulk(db=db, class_id=class_id, student_ids=student_ids)
 
 @router.delete("/{class_id}/students/{student_id}", response_model=ClassStudentResponse)
 async def remove_student_from_class(
@@ -235,3 +240,40 @@ async def remove_student_from_class(
             )
     
     return class_crud.remove_student_from_class(db=db, class_id=class_id, student_id=student_id)
+
+@router.get("/{class_id}/available-students", response_model=List[StudentResponse])
+async def get_available_students(
+    class_id: int,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Get list of students not currently enrolled in the class.
+    Only admin and teachers in charge of the class have access.
+    """
+    # Check permissions
+    if current_user.role not in ["admin", "teacher"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enough permissions to view available students"
+        )
+    
+    # If teacher, check if they are in charge of this class
+    if current_user.role == "teacher":
+        db_class = class_crud.get_class(db, class_id=class_id)
+        if not db_class:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Class not found"
+            )
+        
+        teacher = db.query(Teacher).filter(Teacher.user_id == current_user.user_id).first()
+        if not teacher or db_class.teacher_id != teacher.teacher_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to manage this class"
+            )
+    
+    return class_crud.get_available_students(db=db, class_id=class_id, skip=skip, limit=limit)

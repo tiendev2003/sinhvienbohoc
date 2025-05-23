@@ -6,15 +6,13 @@ export const dropoutRiskService = {
   getAllRisks: async (params = {}) => {
     return api.get('/dropout-risks', { params });
   },
-  
-  // Get risk assessment by ID
+    // Get risk assessment by ID
   getRiskById: async (riskId) => {
     return api.get(`/dropout-risks/${riskId}`);
   },
-  
-  // Get risk assessments for a specific student
+    // Get risk assessments for a specific student
   getStudentRisks: async (studentId) => {
-    return api.get(`/students/${studentId}/dropout-risks`);
+    return api.get(`/dropout-risks/${studentId}/historical`);
   },
   
   // Get latest risk assessment for a student

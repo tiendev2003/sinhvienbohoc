@@ -185,7 +185,7 @@ const HighRiskStudentsList = () => {
       </div>
 
       <div className="p-4 bg-white rounded-lg shadow">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Tìm kiếm
@@ -194,27 +194,9 @@ const HighRiskStudentsList = () => {
               type="text"
               value={filters.searchQuery}
               onChange={handleSearchChange}
-              placeholder="Tên, MSSV hoặc lớp..."
+              placeholder="Tên, MSSV "
               className="w-full p-2 border border-gray-300 rounded"
             />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Lọc theo lớp
-            </label>
-            <select
-              value={filters.classId}
-              onChange={handleClassFilterChange}
-              className="w-full p-2 border border-gray-300 rounded"
-            >
-              <option value="">Tất cả lớp</option>
-              <option value="CNTT1">CNTT1</option>
-              <option value="CNTT2">CNTT2</option>
-              <option value="CNTT3">CNTT3</option>
-              <option value="KTPM1">KTPM1</option>
-              <option value="KTPM2">KTPM2</option>
-            </select>
           </div>
 
           <div>
@@ -248,9 +230,7 @@ const HighRiskStudentsList = () => {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Họ tên
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Lớp
-                  </th>
+
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Mức rủi ro
                   </th>
@@ -280,9 +260,7 @@ const HighRiskStudentsList = () => {
                           {student.name}
                         </Link>
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm">
-                        {student.class_name}
-                      </td>
+                     
                       <td className="px-4 py-3 whitespace-nowrap">
                         {" "}
                         <span

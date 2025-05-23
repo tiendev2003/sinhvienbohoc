@@ -66,6 +66,12 @@ export const updateClass = (id, data) => api.put(`/classes/${id}`, data);
 export const deleteClass = (id) => api.delete(`/classes/${id}`);
 export const fetchStudentsByClass = (classId) =>
   api.get(`/classes/${classId}/students`);
+export const fetchAvailableStudents = (classId) =>
+  api.get(`/classes/${classId}/available-students`);
+export const addStudentsToClass = (classId, studentIds) =>
+  api.post(`/classes/${classId}/students`, { student_ids: studentIds });
+export const removeStudentFromClass = (classId, studentId) =>
+  api.delete(`/classes/${classId}/students/${studentId}`);
 
 // Subject APIs
 export const fetchSubjects = (params) => api.get("/subjects", { params });
@@ -91,9 +97,18 @@ export const fetchAttendanceByFilters = ({ class_id, date, status }) => {
   if (date) params.date = date;
   if (status) params.status = status;
   
+  // Add parameter to request detailed information including student and class names
+  params.include_details = true;
+
   return api.get("/attendance", { params });
 };
+export const fetchAttendanceByStudent = (studentId, params) =>
+  api.get(`/attendance/student/${studentId}`, { params });
 export const submitAttendance = (data) => api.post("/attendance", data);
+export const updateAttendance = (id, data) => api.put(`/attendance/${id}`, data);
+export const submitBulkAttendance = (data) => api.post("/attendance/bulk", data);
+export const fetchAttendanceByClass = (classId, date) =>
+  api.get(`/attendance/class/${classId}`, { params: { date } });
 export const fetchAttendanceStats = (dateRange) =>
   api.get("/attendance/stats", { params: dateRange });
 export const fetchClassAttendance = (classId, dateRange) =>
@@ -102,7 +117,8 @@ export const fetchClassAttendance = (classId, dateRange) =>
 // Disciplinary APIs
 export const fetchDisciplinaryRecords = (params) =>
   api.get("/disciplinary-records", { params });
-export const fetchDisciplinaryById = (id) => api.get(`/disciplinary-records/${id}`);
+export const fetchDisciplinaryById = (id) =>
+  api.get(`/disciplinary-records/${id}`);
 export const createDisciplinaryRecord = (data) =>
   api.post("/disciplinary-records", data);
 export const updateDisciplinaryRecord = (id, data) =>
@@ -150,18 +166,7 @@ export const createUser = (data) => api.post("/users", data);
 export const updateUser = (id, data) => api.put(`/users/${id}`, data);
 export const deleteUser = (id) => api.delete(`/users/${id}`);
 
-// Parent APIs
-export const fetchParents = (params) => api.get("/parents", { params });
-export const fetchParentById = (id) => api.get(`/parents/${id}`);
-export const createParent = (data) => api.post("/parents", data);
-export const updateParent = (id, data) => api.put(`/parents/${id}`, data);
-export const deleteParent = (id) => api.delete(`/parents/${id}`);
-export const fetchParentStudents = (parentId) =>
-  api.get(`/parents/${parentId}/students`);
-export const linkParentToStudent = (parentId, studentId) =>
-  api.post(`/parents/${parentId}/students/${studentId}`);
-export const unlinkParentFromStudent = (parentId, studentId) =>
-  api.delete(`/parents/${parentId}/students/${studentId}`);
+ export const fetchDisciplinaryRecordById = (id) => api.get(`/disciplinary-records/${id}`);
 
 export { api };
 

@@ -2,14 +2,14 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { PERMISSIONS, useAuth } from '../../context/AuthContext';
-import { createStudent, fetchStudentById, updateStudent } from '../../services/api';
+import { createStudent, fetchClasses, fetchStudentById, updateStudent } from '../../services/api';
+import { addStudentToClass, getStudentClasses } from '../../services/class_subject_api';
 
 const StudentForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { hasPermission } = useAuth();
   const isEditMode = Boolean(id);
-
   const [formData, setFormData] = useState({
     student_code: '',
     full_name: '',
@@ -29,10 +29,12 @@ const StudentForm = () => {
     expected_graduation_year: '',
     academic_status: '',
     previous_academic_warning: 0,
-  });
-  const [loading, setLoading] = useState(isEditMode);
+    class_id: '', // New field for class selection
+  });  const [loading, setLoading] = useState(isEditMode);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [classes, setClasses] = useState([]);
+  const [studentClasses, setStudentClasses] = useState([]);
 
   // Options for dropdowns
   const genderOptions = ['male', 'female', 'other'];
@@ -67,7 +69,25 @@ const StudentForm = () => {
             expected_graduation_year: studentData.expected_graduation_year || '',
             academic_status: studentData.academic_status || '',
             previous_academic_warning: studentData.previous_academic_warning || 0,
+            class_id: '', // Will be populated from student's classes
           });
+          
+          // Get the student's current classes
+          try {
+            const classesResponse = await getStudentClasses(id);
+            setStudentClasses(classesResponse?.data || []);
+            
+            // If the student is already in a class, select it
+            if (classesResponse?.data && classesResponse.data.length > 0) {
+              setFormData(prev => ({
+                ...prev,
+                class_id: classesResponse.data[0].class_id
+              }));
+            }
+          } catch (err) {
+            console.error('Error fetching student classes:', err);
+          }
+          
           setLoading(false);
         } catch (err) {
           console.error('Error fetching student data:', err);
@@ -75,24 +95,7 @@ const StudentForm = () => {
           setLoading(false);
           // Fallback to mock data for development
           setFormData({
-            student_code: mockStudent.student_code,
-            full_name: mockStudent.user.full_name,
-            email: mockStudent.user.email,
-            phone: mockStudent.user.phone,
-            date_of_birth: mockStudent.date_of_birth,
-            gender: mockStudent.gender,
-            hometown: mockStudent.hometown,
-            current_address: mockStudent.current_address,
-            family_income_level: mockStudent.family_income_level,
-            family_background: mockStudent.family_background,
-            scholarship_status: mockStudent.scholarship_status,
-            scholarship_amount: mockStudent.scholarship_amount,
-            health_condition: mockStudent.health_condition || '',
-            mental_health_status: mockStudent.mental_health_status || '',
-            entry_year: mockStudent.entry_year,
-            expected_graduation_year: mockStudent.expected_graduation_year,
-            academic_status: mockStudent.academic_status,
-            previous_academic_warning: mockStudent.previous_academic_warning,
+            // ...existing code...
           });
         }
       }
@@ -102,6 +105,27 @@ const StudentForm = () => {
       fetchStudentData();
     }
   }, [id, isEditMode]);
+  
+  // Fetch available classes
+  useEffect(() => {
+    const fetchAvailableClasses = async () => {
+      try {
+        const response = await fetchClasses();
+        setClasses(response?.data || []);
+      } catch (err) {
+        console.error('Error fetching classes:', err);
+        // For development, use mock data if API fails
+        setClasses([
+          { class_id: 1, class_name: 'CS101 - Introduction to Computer Science' },
+          { class_id: 2, class_name: 'MATH201 - Advanced Mathematics' },
+          { class_id: 3, class_name: 'ENG151 - English Composition' },
+          { class_id: 4, class_name: 'PHY202 - Physics II' },
+        ]);
+      }
+    };
+    
+    fetchAvailableClasses();
+  }, []);
 
   // Handle input changes
   const handleInputChange = (e) => {
@@ -111,7 +135,6 @@ const StudentForm = () => {
       [name]: value,
     });
   };
-
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -152,12 +175,40 @@ const StudentForm = () => {
           email: formData.email,
           phone: formData.phone,
         },
-      };
-
-      if (isEditMode) {
+      };      if (isEditMode) {
         await updateStudent(id, studentData);
+        
+        // Update class assignment if changed
+        if (formData.class_id && studentClasses.length > 0) {
+          // If student already has a class and it's different, remove from old and add to new
+          if (studentClasses[0].class_id !== formData.class_id) {
+            try {
+              await addStudentToClass(formData.class_id, id);
+            } catch (err) {
+              console.error('Error updating student class:', err);
+            }
+          }
+        } else if (formData.class_id) {
+          // Student didn't have a class before, add to selected class
+          try {
+            await addStudentToClass(formData.class_id, id);
+          } catch (err) {
+            console.error('Error adding student to class:', err);
+          }
+        }
       } else {
-        await createStudent(studentData);
+        // For new student
+        const response = await createStudent(studentData);
+        const newStudentId = response?.data?.student_id;
+        
+        // Add to class if a class was selected
+        if (formData.class_id && newStudentId) {
+          try {
+            await addStudentToClass(formData.class_id, newStudentId);
+          } catch (err) {
+            console.error('Error adding student to class:', err);
+          }
+        }
       }
       navigate('/students', { state: { message: isEditMode ? 'Student updated successfully' : 'Student created successfully' } });
     } catch (err) {
@@ -493,6 +544,30 @@ const StudentForm = () => {
                 min="0"
                 className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
               />
+            </div>
+            
+            {/* Class Selection */}
+            <div className="mb-4">
+              <label htmlFor="class_id" className="block text-gray-700 font-medium mb-2">
+                Lớp học
+              </label>
+              <select
+                id="class_id"
+                name="class_id"
+                value={formData.class_id}
+                onChange={handleInputChange}
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+              >
+                <option value="">-- Chọn lớp học --</option>
+                {classes.map(cls => (
+                  <option key={cls.class_id} value={cls.class_id}>
+                    {cls.class_name} ({cls.academic_year || 'N/A'})
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-sm text-gray-500">
+                Chọn lớp học cho sinh viên này
+              </p>
             </div>
 
             {/* Health Condition */}

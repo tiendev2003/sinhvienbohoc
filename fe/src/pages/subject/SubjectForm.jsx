@@ -1,7 +1,11 @@
 // File: SubjectForm.jsx
-import { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router';
-import { createSubject, fetchSubjectById, updateSubject } from '../../services/api';
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router";
+import {
+  createSubject,
+  fetchSubjectById,
+  updateSubject,
+} from "../../services/api";
 
 const SubjectForm = () => {
   const { id } = useParams();
@@ -9,15 +13,15 @@ const SubjectForm = () => {
   const isEditMode = Boolean(id);
 
   const [formData, setFormData] = useState({
-    subject_code: '',
-    subject_name: '',
-    subject_description: '',
-    department: '',
-    credits: '',
-    credits_theory: '',
-    credits_practice: '',
-    prerequisite_subjects: '',
-    syllabus_link: '',
+    subject_code: "",
+    subject_name: "",
+    subject_description: "",
+    department: "",
+    credits: "",
+    credits_theory: "",
+    credits_practice: "",
+    prerequisite_subjects: "",
+    syllabus_link: "",
   });
   const [syllabusFile, setSyllabusFile] = useState(null);
   const [loading, setLoading] = useState(isEditMode);
@@ -26,13 +30,13 @@ const SubjectForm = () => {
 
   // Mock departments list for dropdown
   const departments = [
-    'Computer Science',
-    'Mathematics',
-    'Physics',
-    'Chemistry',
-    'Biology',
-    'Humanities',
-    'Social Sciences',
+    "Computer Science",
+    "Mathematics",
+    "Physics",
+    "Chemistry",
+    "Biology",
+    "Humanities",
+    "Social Sciences",
   ];
 
   // Fetch subject data for edit mode
@@ -44,33 +48,33 @@ const SubjectForm = () => {
           const response = await fetchSubjectById(id);
           const subjectData = response?.data || {};
           setFormData({
-            subject_code: subjectData.subject_code || '',
-            subject_name: subjectData.subject_name || '',
-            subject_description: subjectData.subject_description || '',
-            department: subjectData.department || '',
-            credits: subjectData.credits || '',
-            credits_theory: subjectData.credits_theory || '',
-            credits_practice: subjectData.credits_practice || '',
-            prerequisite_subjects: subjectData.prerequisite_subjects || '',
-            syllabus_link: subjectData.syllabus_link || '',
+            subject_code: subjectData.subject_code || "",
+            subject_name: subjectData.subject_name || "",
+            subject_description: subjectData.subject_description || "",
+            department: subjectData.department || "",
+            credits: subjectData.credits || "",
+            credits_theory: subjectData.credits_theory || "",
+            credits_practice: subjectData.credits_practice || "",
+            prerequisite_subjects: subjectData.prerequisite_subjects || "",
+            syllabus_link: subjectData.syllabus_link || "",
           });
           setLoading(false);
         } catch (err) {
-          console.error('Error fetching subject data:', err);
-          setError('Failed to fetch subject data');
+          console.error("Error fetching subject data:", err);
+          setError("Failed to fetch subject data");
           setLoading(false);
           // Fallback to mock data for development
           setFormData({
-            subject_code: 'CS101',
-            subject_name: 'Introduction to Programming',
+            subject_code: "CS101",
+            subject_name: "Introduction to Programming",
             subject_description:
-              'Neque repellendus libero dolore tempore ipsum nulla. Maiores aliquid facere provident provident. Error ipsum recusandae esse blanditiis.',
-            department: 'Computer Science',
+              "Neque repellendus libero dolore tempore ipsum nulla. Maiores aliquid facere provident provident. Error ipsum recusandae esse blanditiis.",
+            department: "Computer Science",
             credits: 3,
             credits_theory: 1.8,
             credits_practice: 1.2,
-            prerequisite_subjects: '',
-            syllabus_link: '/syllabi/CS101.pdf',
+            prerequisite_subjects: "",
+            syllabus_link: "/syllabi/CS101.pdf",
           });
         }
       }
@@ -107,24 +111,29 @@ const SubjectForm = () => {
       const theoryCredits = parseFloat(formData.credits_theory || 0);
       const practiceCredits = parseFloat(formData.credits_practice || 0);
       if (theoryCredits + practiceCredits > totalCredits) {
-        throw new Error('Theory + Practice credits cannot exceed total credits');
+        throw new Error(
+          "Theory + Practice credits cannot exceed total credits"
+        );
       }
 
       // Prepare form data for API
       const formDataToSend = new FormData();
-      formDataToSend.append('subject_code', formData.subject_code);
-      formDataToSend.append('subject_name', formData.subject_name);
-      formDataToSend.append('subject_description', formData.subject_description);
-      formDataToSend.append('department', formData.department);
-      formDataToSend.append('credits', formData.credits);
-      formDataToSend.append('credits_theory', formData.credits_theory);
-      formDataToSend.append('credits_practice', formData.credits_practice);
+      formDataToSend.append("subject_code", formData.subject_code);
+      formDataToSend.append("subject_name", formData.subject_name);
       formDataToSend.append(
-        'prerequisite_subjects',
-        formData.prerequisite_subjects || ''
+        "subject_description",
+        formData.subject_description
+      );
+      formDataToSend.append("department", formData.department);
+      formDataToSend.append("credits", formData.credits);
+      formDataToSend.append("credits_theory", formData.credits_theory);
+      formDataToSend.append("credits_practice", formData.credits_practice);
+      formDataToSend.append(
+        "prerequisite_subjects",
+        formData.prerequisite_subjects || ""
       );
       if (syllabusFile) {
-        formDataToSend.append('syllabus', syllabusFile);
+        formDataToSend.append("syllabus", syllabusFile);
       }
 
       if (isEditMode) {
@@ -132,16 +141,16 @@ const SubjectForm = () => {
       } else {
         await createSubject(formDataToSend);
       }
-      navigate('/subjects');
+      navigate("/subjects");
     } catch (err) {
-      console.error('Error submitting form:', err);
-      setError(err.message || 'Failed to save subject data');
+      console.error("Error submitting form:", err);
+      setError(err.message || "Failed to save subject data");
       setSubmitting(false);
 
       // Simulate success for development
-      if (process.env.NODE_ENV === 'development') {
+      if (process.env.NODE_ENV === "development") {
         setTimeout(() => {
-          navigate('/subjects');
+          navigate("/subjects");
         }, 1000);
       }
     }
@@ -155,7 +164,7 @@ const SubjectForm = () => {
     );
 
   return (
-    <div className="max-w-4xl mx-auto p-4">
+    <div className="container mx-auto p-4">
       <div className="flex items-center mb-6">
         <Link
           to="/subjects"
@@ -164,19 +173,24 @@ const SubjectForm = () => {
           ← Back to Subjects
         </Link>
         <h1 className="text-3xl font-bold text-gray-900">
-          {isEditMode ? 'Edit Subject' : 'Create New Subject'}
+          {isEditMode ? "Edit Subject" : "Create New Subject"}
         </h1>
       </div>
 
       <div className="bg-white rounded-lg shadow-lg p-6">
         {error && (
-          <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-lg">{error}</div>
+          <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-lg">
+            {error}
+          </div>
         )}
 
         <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="mb-4">
-              <label htmlFor="subject_name" className="block text-gray-700 font-medium mb-2">
+              <label
+                htmlFor="subject_name"
+                className="block text-gray-700 font-medium mb-2"
+              >
                 Subject Name*
               </label>
               <input
@@ -191,7 +205,10 @@ const SubjectForm = () => {
             </div>
 
             <div className="mb-4">
-              <label htmlFor="subject_code" className="block text-gray-700 font-medium mb-2">
+              <label
+                htmlFor="subject_code"
+                className="block text-gray-700 font-medium mb-2"
+              >
                 Subject Code*
               </label>
               <input
@@ -207,7 +224,10 @@ const SubjectForm = () => {
             </div>
 
             <div className="mb-4">
-              <label htmlFor="department" className="block text-gray-700 font-medium mb-2">
+              <label
+                htmlFor="department"
+                className="block text-gray-700 font-medium mb-2"
+              >
                 Department*
               </label>
               <select
@@ -228,7 +248,10 @@ const SubjectForm = () => {
             </div>
 
             <div className="mb-4">
-              <label htmlFor="credits" className="block text-gray-700 font-medium mb-2">
+              <label
+                htmlFor="credits"
+                className="block text-gray-700 font-medium mb-2"
+              >
                 Total Credits*
               </label>
               <input
@@ -246,7 +269,10 @@ const SubjectForm = () => {
             </div>
 
             <div className="mb-4">
-              <label htmlFor="credits_theory" className="block text-gray-700 font-medium mb-2">
+              <label
+                htmlFor="credits_theory"
+                className="block text-gray-700 font-medium mb-2"
+              >
                 Theory Credits*
               </label>
               <input
@@ -264,7 +290,10 @@ const SubjectForm = () => {
             </div>
 
             <div className="mb-4">
-              <label htmlFor="credits_practice" className="block text-gray-700 font-medium mb-2">
+              <label
+                htmlFor="credits_practice"
+                className="block text-gray-700 font-medium mb-2"
+              >
                 Practice Credits*
               </label>
               <input
@@ -300,7 +329,10 @@ const SubjectForm = () => {
             </div>
 
             <div className="mb-4">
-              <label htmlFor="syllabus" className="block text-gray-700 font-medium mb-2">
+              <label
+                htmlFor="syllabus"
+                className="block text-gray-700 font-medium mb-2"
+              >
                 Syllabus File
               </label>
               <input
@@ -353,7 +385,11 @@ const SubjectForm = () => {
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-400"
               disabled={submitting}
             >
-              {submitting ? 'Saving...' : isEditMode ? 'Update Subject' : 'Create Subject'}
+              {submitting
+                ? "Saving..."
+                : isEditMode
+                ? "Update Subject"
+                : "Create Subject"}
             </button>
           </div>
         </form>

@@ -39,8 +39,16 @@ class AttendanceInDB(AttendanceBase):
         from_attributes = True
 
 # Schema for API responses
-class AttendanceResponse(AttendanceBase):
+class AttendanceResponse(BaseModel):
     attendance_id: int
+    student_id: int
+    class_id: int
+    date: date
+    status: AttendanceStatus = AttendanceStatus.PRESENT
+    minutes_late: Optional[int] = 0
+    notes: Optional[str] = None
+    student_name: Optional[str] = None
+    class_name: Optional[str] = None
     
     class Config:
         from_attributes = True

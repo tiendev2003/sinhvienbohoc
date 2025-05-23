@@ -2,7 +2,7 @@ CREATE TABLE users (
     user_id INT PRIMARY KEY AUTO_INCREMENT,
     username VARCHAR(50) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL, -- Mã hóa mật khẩu (sử dụng bcrypt)
-    role ENUM('admin', 'teacher', 'student', 'counselor', 'parent') NOT NULL, -- Thêm vai trò nhân viên tư vấn và phụ huynh
+    role ENUM('admin', 'teacher', 'student', 'counselor') NOT NULL, -- Thêm vai trò nhân viên tư vấn và phụ huynh
     full_name VARCHAR(100) NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
     phone VARCHAR(20), -- Thêm số điện thoại

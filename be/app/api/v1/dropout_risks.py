@@ -26,12 +26,14 @@ async def read_dropout_risks(
     limit: int = 100, 
     min_risk: Optional[float] = None,
     max_risk: Optional[float] = None,
+    student_id: Optional[int] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
     """
     Lấy danh sách đánh giá nguy cơ bỏ học
-    Sinh viên chỉ được xem đánh giá của bản thân
+    - Sinh viên chỉ được xem đánh giá của bản thân
+    - Có thể lọc theo student_id, min_risk, max_risk
     """
     if current_user.role == "student":
         student = db.query(Student).filter(Student.user_id == current_user.user_id).first()
@@ -39,8 +41,12 @@ async def read_dropout_risks(
             return []
         risks = get_dropout_risks_by_student(db, student_id=student.student_id)
     else:
-        # Nếu là giáo viên, cố vấn hoặc admin, cho phép xem tất cả
-        risks = get_dropout_risks(db, skip=skip, limit=limit, min_risk=min_risk, max_risk=max_risk)
+        # Nếu có student_id, lấy của student đó
+        if student_id is not None:
+            risks = get_dropout_risks_by_student(db, student_id=student_id)
+        else:
+            # Nếu không có student_id, lấy tất cả với các filter khác
+            risks = get_dropout_risks(db, skip=skip, limit=limit, min_risk=min_risk, max_risk=max_risk)
     
     # Đảm bảo risk_factors là dictionary
     for risk in risks:
@@ -63,6 +69,37 @@ async def create_new_dropout_risk(
     """
     return create_dropout_risk(db=db, dropout_risk=dropout_risk)
 
+@router.get("/{student_id}/historical", response_model=List[DropoutRiskResponse])
+async def get_student_risk_history(
+    student_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Lấy lịch sử đánh giá nguy cơ bỏ học của một sinh viên
+    """
+    # Kiểm tra quyền truy cập
+    if current_user.role == "student":
+        student = db.query(Student).filter(Student.user_id == current_user.user_id).first()
+        if not student or student.student_id != student_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Không đủ quyền truy cập thông tin đánh giá của sinh viên khác"
+            )
+            
+    # Lấy lịch sử đánh giá
+    risks = get_dropout_risks_by_student(db, student_id=student_id)
+    
+    # Đảm bảo risk_factors là dictionary cho mỗi đánh giá
+    for risk in risks:
+        if risk.risk_factors and isinstance(risk.risk_factors, str):
+            try:
+                risk.risk_factors = json.loads(risk.risk_factors)
+            except (json.JSONDecodeError, TypeError):
+                risk.risk_factors = {}
+                
+    return risks
+  
 @router.get("/{risk_id}", response_model=DropoutRiskResponse)
 async def read_dropout_risk(
     risk_id: int, 

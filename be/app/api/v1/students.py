@@ -3,10 +3,11 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
-from app.models.models import User, Student
+from app.models.models import User, Student, ClassStudent, Class
 from app.schemas.schemas import (
     StudentCreate, StudentUpdate, StudentResponse, 
-    PaginationParams, SearchParams, PaginatedResponse
+    PaginationParams, SearchParams, PaginatedResponse,
+    ClassResponse
 )
 from app.crud.student import (
     get_student, get_students, create_student, 
@@ -202,3 +203,43 @@ async def delete_student_info(
     Xóa sinh viên, chỉ admin mới có quyền
     """
     return delete_student(db=db, student_id=student_id)
+
+@router.get("/{student_id}/classes", response_model=List[ClassResponse])
+async def read_student_classes(
+    student_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Lấy danh sách lớp học của một sinh viên
+    """
+    # Kiểm tra quyền truy cập
+    if current_user.role == "student":
+        # Sinh viên chỉ có thể xem lớp học của chính mình
+        student = db.query(Student).filter(Student.user_id == current_user.user_id).first()
+        if not student or student.student_id != student_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Không có quyền xem thông tin lớp học của sinh viên khác"
+            )
+    
+    # Kiểm tra sinh viên tồn tại
+    student = get_student(db, student_id=student_id)
+    if not student:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Không tìm thấy sinh viên"
+        )
+    
+    # Lấy danh sách lớp học của sinh viên
+    student_classes = (
+        db.query(Class)
+        .join(ClassStudent, Class.class_id == ClassStudent.class_id)
+        .filter(
+            ClassStudent.student_id == student_id,
+            ClassStudent.status == "enrolled"  # Chỉ lấy các lớp mà sinh viên đang tham gia
+        )
+        .all()
+    )
+    
+    return student_classes

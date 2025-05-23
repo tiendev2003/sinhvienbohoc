@@ -1,6 +1,6 @@
 from typing import List, Optional, Dict, Any
 from datetime import date, datetime, timedelta
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, and_, or_
 from fastapi import HTTPException, status
 
@@ -20,8 +20,13 @@ def get_attendance_records(
     date: Optional[date] = None,
     start_date: Optional[date] = None,
     end_date: Optional[date] = None,
-    status: Optional[str] = None
+    status: Optional[str] = None,
+    include_details: bool = False
 ) -> List[Attendance]:
+    """
+    Lấy danh sách bản ghi điểm danh với các bộ lọc.
+    Nếu include_details=True, sẽ tự động bao gồm student_name và class_name trong kết quả.
+    """
     query = db.query(Attendance)
     
     # Only apply filters if they have valid values
@@ -43,7 +48,7 @@ def get_attendance_records(
         
     if status and status != "":
         query = query.filter(Attendance.status == status)
-        
+    
     return query.order_by(Attendance.date.desc(), Attendance.student_id).offset(skip).limit(limit).all()
 
 def create_attendance(db: Session, attendance: AttendanceCreate) -> Attendance:

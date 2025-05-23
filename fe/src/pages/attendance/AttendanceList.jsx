@@ -2,19 +2,19 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import DataTable from '../../components/common/DataTable';
-import { fetchAttendanceByFilters } from '../../services/api';
+import { fetchAttendanceByFilters, fetchClasses } from '../../services/api';
 import { formatDate } from '../../utils/formatters';
 
 const AttendanceList = () => {
   const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [classes, setClasses] = useState([]);
   const [filter, setFilter] = useState({
     class_id: '',
     date: '',
     status: '',
   });
-
   useEffect(() => {
   const getAttendanceRecords = async () => {
     try {
@@ -41,6 +41,22 @@ const AttendanceList = () => {
 
     getAttendanceRecords();
   }, [filter]);
+
+  // Fetch classes for dropdown filter
+  useEffect(() => {
+    const getClasses = async () => {
+      try {
+        const response = await fetchClasses();
+        setClasses(response?.data || []);
+      } catch (err) {
+        console.error('Error fetching classes:', err);
+        // If API fails, fallback to empty array
+        setClasses([]);
+      }
+    };
+
+    getClasses();
+  }, []);
 
   // Handle filter changes
   const handleFilterChange = (e) => {
@@ -73,17 +89,20 @@ const AttendanceList = () => {
         return 'bg-gray-100 text-gray-800';
     }
   };
-
   // Define columns for data table
   const columns = [
     { header: 'Attendance ID', accessor: 'attendance_id' },
+    {
+      header: 'Student',
+      accessor: (row) => row.student_name || `Student ${row.student_id}`,
+    },
     {
       header: 'Student ID',
       accessor: 'student_id',
     },
     {
-      header: 'Class ID',
-      accessor: 'class_id',
+      header: 'Class',
+      accessor: (row) => row.class_name || `Class ${row.class_id}`,
     },
     {
       header: 'Date',
@@ -111,13 +130,14 @@ const AttendanceList = () => {
       accessor: (row) => row.notes || '-',
     },
   ];
-
   // Mock data for development
   const mockAttendanceRecords = [
     {
       attendance_id: 3671,
       student_id: 6,
+      student_name: "Nguyen Van A",
       class_id: 9,
+      class_name: "CS2023A",
       date: '2025-08-14',
       status: 'present',
       minutes_late: 0,
@@ -126,7 +146,9 @@ const AttendanceList = () => {
     {
       attendance_id: 3672,
       student_id: 7,
+      student_name: "Tran Thi B",
       class_id: 9,
+      class_name: "CS2023A",
       date: '2025-08-14',
       status: 'absent',
       minutes_late: 0,
@@ -135,7 +157,9 @@ const AttendanceList = () => {
     {
       attendance_id: 3673,
       student_id: 8,
+      student_name: "Le Van C",
       class_id: 9,
+      class_name: "CS2023A",
       date: '2025-08-14',
       status: 'late',
       minutes_late: 15,
@@ -144,7 +168,9 @@ const AttendanceList = () => {
     {
       attendance_id: 3674,
       student_id: 9,
+      student_name: "Pham Thi D",
       class_id: 10,
+      class_name: "CS2023B",
       date: '2025-08-15',
       status: 'present',
       minutes_late: 0,
@@ -153,19 +179,13 @@ const AttendanceList = () => {
     {
       attendance_id: 3675,
       student_id: 10,
+      student_name: "Hoang Van E",
       class_id: 10,
+      class_name: "CS2023B",
       date: '2025-08-15',
-      status: 'present',
-      minutes_late: 0,
+      status: 'present',    minutes_late: 0,
       notes: null,
     },
-  ];
-
-  // Mock classes for filter dropdown
-  const mockClasses = [
-    { id: 9, name: 'CS2023A' },
-    { id: 10, name: 'CS2023B' },
-    { id: 11, name: 'CS2024A' },
   ];
 
   if (loading) {
@@ -207,13 +227,12 @@ const AttendanceList = () => {
               id="class_id"
               name="class_id"
               value={filter.class_id}
-              onChange={handleFilterChange}
-              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+              onChange={handleFilterChange}              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
             >
               <option value="">All Classes</option>
-              {mockClasses.map((cls) => (
-                <option key={cls.id} value={cls.id}>
-                  {cls.name}
+              {classes.map((cls) => (
+                <option key={cls.class_id} value={cls.class_id}>
+                  {cls.class_name}
                 </option>
               ))}
             </select>

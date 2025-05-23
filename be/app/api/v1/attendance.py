@@ -25,6 +25,7 @@ async def read_attendance_records(
     start_date: Optional[date] = None,
     end_date: Optional[date] = None,
     status: Optional[str] = None,
+    include_details: bool = False,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
@@ -35,6 +36,7 @@ async def read_attendance_records(
     - Ngày cụ thể 
     - Khoảng thời gian (start_date và end_date)
     - Trạng thái (present, absent, late, excused)
+    - include_details: Nếu True, kết quả sẽ bao gồm thông tin chi tiết về sinh viên và lớp học
     
     Nếu không cung cấp giá trị cho các tham số, hệ thống sẽ trả về tất cả dữ liệu điểm danh
     dựa trên quyền của người dùng.
@@ -62,26 +64,7 @@ async def read_attendance_records(
                 detail="Không có quyền xem thông tin điểm danh của sinh viên khác"
             )
     
-    # Phụ huynh chỉ được xem điểm danh của con em mình
-    elif current_user.role == "parent":
-        from app.models.models import Parent
-        parent = db.query(Parent).filter(Parent.user_id == current_user.user_id).first()
-        if not parent:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Không tìm thấy thông tin phụ huynh"
-            )
-        
-        # Nếu không chỉ định student_id, sử dụng ID của sinh viên liên quan đến phụ huynh này
-        if student_id is None:
-            student_id = parent.student_id
-        
-        # Nếu chỉ định student_id khác với ID của sinh viên liên quan đến phụ huynh, từ chối
-        elif student_id != parent.student_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Không có quyền xem thông tin điểm danh của sinh viên khác"
-            )
+    # Lấy danh sách bản ghi điểm danh
     records = attendance_crud.get_attendance_records(
         db, 
         skip=skip, 
@@ -91,8 +74,17 @@ async def read_attendance_records(
         date=date,
         start_date=start_date,
         end_date=end_date,
-        status=status
+        status=status,
+        include_details=include_details
     )
+    
+    # Nếu yêu cầu chi tiết nhưng không dùng hybrid properties, thủ công lấy thông tin
+    if include_details and records:
+        # Đảm bảo thông tin student_name và class_name được điền đầy đủ 
+        for record in records:
+            # Hybrid properties bây giờ sẽ tự động lấy thông tin này
+            pass
+    
     return records
 
 @router.post("/", response_model=AttendanceResponse, status_code=status.HTTP_201_CREATED)
@@ -148,17 +140,7 @@ async def get_attendance_summary(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Không có quyền xem thống kê điểm danh của sinh viên khác"
             )
-    
-    elif current_user.role == "parent":
-        from app.models.models import Parent
-        parent = db.query(Parent).filter(Parent.user_id == current_user.user_id).first()
-        if not parent or parent.student_id != student_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Không có quyền xem thống kê điểm danh của sinh viên khác"
-            )
-    
-    # Kiểm tra sinh viên tồn tại
+      # Kiểm tra sinh viên tồn tại
     student = db.query(Student).filter(Student.student_id == student_id).first()
     if not student:
         raise HTTPException(
@@ -233,16 +215,6 @@ async def read_attendance(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Không có quyền xem bản ghi điểm danh này"
             )
-    
-    elif current_user.role == "parent":
-        from app.models.models import Parent
-        parent = db.query(Parent).filter(Parent.user_id == current_user.user_id).first()
-        if not parent or db_attendance.student_id != parent.student_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Không có quyền xem bản ghi điểm danh này"
-            )
-    
     return db_attendance
 
 @router.put("/{attendance_id}", response_model=AttendanceResponse)

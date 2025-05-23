@@ -1,8 +1,9 @@
-from sqlalchemy import Column, Integer, String, Enum, ForeignKey, Float, Text, Date, TIMESTAMP, Boolean, JSON, Numeric
+from sqlalchemy import Column, Integer, String, Enum, ForeignKey, Float, Text, Date, TIMESTAMP, Boolean, JSON, Numeric, text
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 
 from app.db.database import Base
+from app.models.class_subject import ClassSubject
 
 class User(Base):
     __tablename__ = "users"
@@ -10,7 +11,7 @@ class User(Base):
     user_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     username = Column(String(50), unique=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
-    role = Column(Enum('admin', 'teacher', 'student', 'counselor', 'parent'), nullable=False)
+    role = Column(Enum('admin', 'teacher', 'student', 'counselor'), nullable=False)
     full_name = Column(String(100), nullable=False)
     email = Column(String(100), unique=True, nullable=False)
     phone = Column(String(20), nullable=True)
@@ -22,9 +23,7 @@ class User(Base):
     
     # Relationships
     student = relationship("Student", back_populates="user", uselist=False)
-    teacher = relationship("Teacher", back_populates="user", uselist=False)
-    parent = relationship("Parent", back_populates="user", uselist=False)
-    
+    teacher = relationship("Teacher", back_populates="user", uselist=False)    
     def __repr__(self):
         return f"<User {self.username}>"
 
@@ -71,38 +70,16 @@ class Student(Base):
     academic_status = Column(Enum('good', 'warning', 'probation', 'suspended'), default='good')
     entry_year = Column(Integer, nullable=True)
     expected_graduation_year = Column(Integer, nullable=True)
-    
-    # Relationships
+      # Relationships
     user = relationship("User", back_populates="student")
     grades = relationship("Grade", back_populates="student")
     disciplinary_records = relationship("DisciplinaryRecord", back_populates="student")
     dropout_risks = relationship("DropoutRisk", back_populates="student")
     classes = relationship("ClassStudent", back_populates="student")
-    parents = relationship("Parent", back_populates="student")
     attendance = relationship("Attendance", back_populates="student")
     
     def __repr__(self):
         return f"<Student {self.student_code}>"
-    
-class Parent(Base):
-    __tablename__ = "parents"
-    
-    parent_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"), unique=True)
-    student_id = Column(Integer, ForeignKey("students.student_id", ondelete="CASCADE"))
-    relation_to_student = Column(Enum('father', 'mother', 'guardian', 'other'), nullable=False)
-    occupation = Column(String(100), nullable=True)
-    education_level = Column(Enum('primary', 'secondary', 'high_school', 'college', 'university', 'post_graduate', 'none'), nullable=True)
-    income = Column(Numeric(10, 2), nullable=True)
-    phone_secondary = Column(String(20), nullable=True)
-    address = Column(String(255), nullable=True)
-    
-    # Relationships
-    user = relationship("User", back_populates="parent")  # Corrected to match User class
-    student = relationship("Student", back_populates="parents")
-    
-    def __repr__(self):
-        return f"<Parent {self.parent_id}>"
 
 class Class(Base):
     __tablename__ = "classes"
@@ -123,6 +100,7 @@ class Class(Base):
     # Relationships
     teacher = relationship("Teacher", back_populates="classes")
     students = relationship("ClassStudent", back_populates="class_obj")
+    subjects = relationship("ClassSubject", back_populates="class_obj")
     grades = relationship("Grade", back_populates="class_obj")
     attendance = relationship("Attendance", back_populates="class_obj")
     
@@ -145,16 +123,16 @@ class Subject(Base):
     
     # Relationships
     grades = relationship("Grade", back_populates="subject")
+    classes = relationship("ClassSubject", back_populates="subject")
     
     def __repr__(self):
         return f"<Subject {self.subject_code}>"
 
 class ClassStudent(Base):
     __tablename__ = "class_students"
-    
     class_id = Column(Integer, ForeignKey("classes.class_id", ondelete="CASCADE"), primary_key=True)
     student_id = Column(Integer, ForeignKey("students.student_id", ondelete="CASCADE"), primary_key=True)
-    enrollment_date = Column(TIMESTAMP, server_default=func.now())
+    enrollment_date = Column(Date, server_default=text("(CURRENT_DATE)"))
     status = Column(Enum('enrolled', 'dropped', 'completed'), default='enrolled')
     
     # Relationships

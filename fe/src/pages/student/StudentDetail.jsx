@@ -3,13 +3,14 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { PERMISSIONS, useAuth } from '../../context/AuthContext';
 import { deleteStudent, fetchStudentById } from '../../services/api';
+import { getStudentClasses } from '../../services/class_subject_api';
 import { formatDate } from '../../utils/formatters';
 
 const StudentDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { hasPermission } = useAuth();
-  const [student, setStudent] = useState(null);
+  const { hasPermission } = useAuth();  const [student, setStudent] = useState(null);
+  const [studentClasses, setStudentClasses] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
@@ -20,6 +21,16 @@ const StudentDetail = () => {
         setIsLoading(true);
         const response = await fetchStudentById(id);
         setStudent(response?.data || mockStudent);
+        
+        // Fetch student's classes
+        try {
+          const classesResponse = await getStudentClasses(id);
+          setStudentClasses(classesResponse?.data || []);
+        } catch (classErr) {
+          console.error('Error fetching student classes:', classErr);
+          setStudentClasses([]);
+        }
+        
         setIsLoading(false);
       } catch (err) {
         console.error('Error fetching student data:', err);
@@ -183,7 +194,7 @@ const StudentDetail = () => {
       {/* Tabs */}
       <div className="mb-6 border-b border-gray-200">
         <ul className="flex flex-wrap -mb-px">
-          {['overview', 'academic', 'attendance', 'disciplinary', 'counseling'].map((tab) => (
+          {['overview', 'classes', 'academic', 'attendance', 'disciplinary', 'counseling'].map((tab) => (
             <li key={tab} className="mr-2">
               <button
                 className={`inline-block p-4 border-b-2 rounded-t-lg ${
@@ -279,10 +290,52 @@ const StudentDetail = () => {
                 </p>
                 <p>
                   <span className="font-medium text-gray-700">Scholarship Amount:</span>{' '}
-                  ${student.scholarship_amount.toLocaleString()}
+                  ${student?.scholarship_amount?.toLocaleString()}
                 </p>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Classes Tab */}
+        {activeTab === 'classes' && (
+          <div>
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">Class Information</h2>
+            {studentClasses?.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Class Name
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Teacher
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Schedule
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {studentClasses.map((classInfo, index) => (                      <tr key={index}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {classInfo.class_name}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {classInfo.teacher?.user?.full_name}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {JSON.parse(classInfo.schedule ? classInfo.schedule : '{}').wed?.[0] || 'N/A'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="text-gray-500">No class records found.</p>
+            )}
           </div>
         )}
 

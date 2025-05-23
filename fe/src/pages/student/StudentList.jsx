@@ -8,24 +8,22 @@ import { fetchStudents } from '../../services/api';
 const StudentList = () => {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filters, setFilters] = useState({
-    entry_year: '',
+  const [error, setError] = useState(null);  const [filters, setFilters] = useState({
+    page: 1,
+    size: 10,
+    query: '', // search term
+    field: '',
     academic_status: '',
-    sortBy: 'full_name',
+    gender: '',
+    class_id: '',
   });
   const { hasPermission } = useAuth();
-
   useEffect(() => {
     const fetchStudentData = async () => {
       try {
         setLoading(true);
-        const response = await fetchStudents({
-          search: searchTerm,
-          ...filters,
-        });
-        setStudents(response?.data || mockStudents);
+        const response = await fetchStudents(filters);
+        setStudents(response?.data || mockStudents); 
         setLoading(false);
       } catch (err) {
         console.error('Error fetching students:', err);
@@ -36,10 +34,12 @@ const StudentList = () => {
     };
 
     fetchStudentData();
-  }, [searchTerm, filters]);
-
+  }, [filters]);
   const handleSearchChange = (e) => {
-    setSearchTerm(e.target.value);
+    setFilters(prev => ({
+      ...prev,
+      query: e.target.value
+    }));
   };
 
   const handleFilterChange = (e) => {
@@ -186,7 +186,7 @@ const StudentList = () => {
 
   if (error)
     return (
-      <div className="max-w-4xl mx-auto p-4">
+      <div className="container mx-auto p-4">
         <div className="bg-red-50 text-red-700 p-4 rounded-lg">{error}</div>
       </div>
     );
@@ -207,28 +207,26 @@ const StudentList = () => {
 
       {/* Search and Filters */}
       <div className="mb-6 bg-white p-4 rounded-lg shadow-lg">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">          <div>
             <input
               type="text"
-              placeholder="Search students by name or code..."
-              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-              value={searchTerm}
+              placeholder="Tìm kiếm theo tên hoặc mã học sinh..."
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600" 
+              value={filters.query}
               onChange={handleSearchChange}
             />
           </div>
           <div>
             <select
-              name="entry_year"
+              name="field"
               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-              value={filters.entry_year}
-              onChange={handleFilterChange}
+              value={filters.field}
+              onChange={handleFilterChange}  
             >
-              <option value="">All Entry Years</option>
-              <option value="2021">2021</option>
-              <option value="2022">2022</option>
-              <option value="2023">2023</option>
-              <option value="2024">2024</option>
+              <option value="">Tìm kiếm theo</option>
+              <option value="full_name">Tên</option>
+              <option value="student_code">Mã số</option>
+              <option value="email">Email</option>
             </select>
           </div>
           <div>
@@ -238,10 +236,12 @@ const StudentList = () => {
               value={filters.academic_status}
               onChange={handleFilterChange}
             >
-              <option value="">All Statuses</option>
-              <option value="active">Active</option>
-              <option value="suspended">Suspended</option>
-              <option value="expelled">Expelled</option>
+              <option value="">Tất cả trạng thái</option>
+              <option value="normal">Bình thường</option>
+              <option value="warning">Cảnh báo</option>
+              <option value="probation">Thử thách</option>
+              <option value="suspended">Đình chỉ</option>
+              <option value="expelled">Buộc thôi học</option>
             </select>
           </div>
         </div>

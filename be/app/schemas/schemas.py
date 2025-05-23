@@ -9,7 +9,6 @@ class UserRole(str, Enum):
     TEACHER = "teacher"
     STUDENT = "student"
     COUNSELOR = "counselor"
-    PARENT = "parent"
 
 class AccountStatus(str, Enum):
     ACTIVE = "active"
@@ -186,42 +185,6 @@ class TeacherResponse(TeacherBase):
     class Config:
         from_attributes = True
 
-# ----- Parent Models -----
-class ParentBase(BaseModel):
-    student_id: int
-    relation_to_student: str
-    occupation: Optional[str] = None
-    education_level: Optional[str] = None
-    income: Optional[float] = None
-    phone_secondary: Optional[str] = None
-    address: Optional[str] = None
-
-class ParentCreate(ParentBase):
-    user_id: int
-
-class ParentUpdate(BaseModel):
-    relation_to_student: Optional[str] = None
-    occupation: Optional[str] = None
-    education_level: Optional[str] = None
-    income: Optional[float] = None
-    phone_secondary: Optional[str] = None
-    address: Optional[str] = None
-
-class ParentInDB(ParentBase):
-    parent_id: int
-    user_id: int
-
-    class Config:
-        from_attributes = True
-
-class ParentResponse(ParentBase):
-    parent_id: int
-    user: Optional[UserResponse] = None
-    student: Optional[StudentResponse] = None
-
-    class Config:
-        from_attributes = True
-
 # ----- Class Models -----
 class ClassBase(BaseModel):
     class_name: str
@@ -236,6 +199,7 @@ class ClassBase(BaseModel):
 
 class ClassCreate(ClassBase):
     teacher_id: Optional[int] = None
+    subjects: Optional[List[int]] = None  # List of subject IDs
 
 class ClassUpdate(BaseModel):
     class_name: Optional[str] = None
@@ -248,6 +212,7 @@ class ClassUpdate(BaseModel):
     schedule: Optional[Any] = None
     teacher_id: Optional[int] = None
     max_students: Optional[int] = None
+    subjects: Optional[List[int]] = None  # List of subject IDs
 
 class ClassInDB(ClassBase):
     class_id: int
@@ -309,6 +274,12 @@ class ClassStudentBase(BaseModel):
     student_id: int
     enrollment_date: Optional[date] = None
     status: EnrollmentStatus = EnrollmentStatus.ENROLLED
+    
+    @validator('enrollment_date', pre=True)
+    def parse_enrollment_date(cls, value):
+        if isinstance(value, datetime):
+            return value.date()
+        return value
 
 class ClassStudentCreate(ClassStudentBase):
     pass
@@ -460,3 +431,8 @@ class PaginatedResponse(BaseModel):
     page: int
     size: int
     pages: int
+
+# ----- Response Models -----
+class MessageResponse(BaseModel):
+    message: str
+    details: Optional[Dict[str, Any]] = None

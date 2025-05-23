@@ -1,5 +1,5 @@
-import { createContext, useContext, useEffect, useState } from 'react';
-import { getProfile, login as loginApi } from '../services/api';
+import { createContext, useContext, useEffect, useState } from "react";
+import { getProfile, login as loginApi } from "../services/api";
 
 const AuthContext = createContext(null);
 
@@ -7,64 +7,57 @@ export const useAuth = () => useContext(AuthContext);
 
 // Define user roles and their permissions
 export const USER_ROLES = {
-  ADMIN: 'admin',
-  TEACHER: 'teacher',
-  COUNSELOR: 'counselor',
-  STUDENT: 'student',
-  PARENT: 'parent',
+  ADMIN: "admin",
+  TEACHER: "teacher",
+  COUNSELOR: "counselor",
+  STUDENT: "student",
 };
 
-// Define permissions for each module
+// Define permissionsfor each module
 export const PERMISSIONS = {
-  DASHBOARD: 'dashboard',
+  DASHBOARD: "dashboard",
   // Student related permissions
-  STUDENT_VIEW: 'student_view',
-  STUDENT_CREATE: 'student_create',
-  STUDENT_EDIT: 'student_edit',
-  STUDENT_DELETE: 'student_delete',
-  
+  STUDENT_VIEW: "student_view",
+  STUDENT_CREATE: "student_create",
+  STUDENT_EDIT: "student_edit",
+  STUDENT_DELETE: "student_delete",
+
   // Class related permissions
-  CLASS_VIEW: 'class_view',
-  CLASS_CREATE: 'class_create',
-  CLASS_EDIT: 'class_edit',
-  CLASS_DELETE: 'class_delete',
-  
+  CLASS_VIEW: "class_view",
+  CLASS_CREATE: "class_create",
+  CLASS_EDIT: "class_edit",
+  CLASS_DELETE: "class_delete",
+
   // Subject related permissions
-  SUBJECT_VIEW: 'subject_view',
-  SUBJECT_CREATE: 'subject_create',
-  SUBJECT_EDIT: 'subject_edit',
-  SUBJECT_DELETE: 'subject_delete',
-  
+  SUBJECT_VIEW: "subject_view",
+  SUBJECT_CREATE: "subject_create",
+  SUBJECT_EDIT: "subject_edit",
+  SUBJECT_DELETE: "subject_delete",
+
   // Attendance related permissions
-  ATTENDANCE_VIEW: 'attendance_view',
-  ATTENDANCE_CREATE: 'attendance_create',
-  ATTENDANCE_EDIT: 'attendance_edit',
-  
+  ATTENDANCE_VIEW: "attendance_view",
+  ATTENDANCE_CREATE: "attendance_create",
+  ATTENDANCE_EDIT: "attendance_edit",
+
   // Disciplinary related permissions
-  DISCIPLINARY_VIEW: 'disciplinary_view',
-  DISCIPLINARY_CREATE: 'disciplinary_create',
-  DISCIPLINARY_EDIT: 'disciplinary_edit',
-  DISCIPLINARY_DELETE: 'disciplinary_delete',
-  
+  DISCIPLINARY_VIEW: "disciplinary_view",
+  DISCIPLINARY_CREATE: "disciplinary_create",
+  DISCIPLINARY_EDIT: "disciplinary_edit",
+  DISCIPLINARY_DELETE: "disciplinary_delete",
+
   // Dropout risk related permissions
-  DROPOUT_RISK_VIEW: 'dropout_risk_view',
-  DROPOUT_INTERVENTION_MANAGE: 'dropout_intervention_manage',
-  
+  DROPOUT_RISK_VIEW: "dropout_risk_view",
+  DROPOUT_INTERVENTION_MANAGE: "dropout_intervention_manage",
+
   // Reports related permissions
-  REPORTS_VIEW: 'reports_view',
-  REPORTS_EXPORT: 'reports_export',
-  
+  REPORTS_VIEW: "reports_view",
+  REPORTS_EXPORT: "reports_export",
+
   // User management related permissions
-  USER_VIEW: 'user_view',
-  USER_CREATE: 'user_create',
-  USER_EDIT: 'user_edit',
-  USER_DELETE: 'user_delete',
-  
-  // Parent related permissions
-  PARENT_VIEW: 'parent_view',
-  PARENT_CREATE: 'parent_create',
-  PARENT_EDIT: 'parent_edit',
-  PARENT_DELETE: 'parent_delete',
+  USER_VIEW: "user_view",
+  USER_CREATE: "user_create",
+  USER_EDIT: "user_edit",
+  USER_DELETE: "user_delete",
 };
 
 // Define role-based permissions
@@ -121,27 +114,27 @@ export const AuthProvider = ({ children }) => {
     // Check if user is authenticated
     const checkAuth = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem("token");
         if (token) {
           // Validate token with backend
           try {
             const response = await getProfile();
             const userData = response.data;
             setUser(userData);
-            
+
             setIsAuthenticated(true);
             // Set permissions based on user role
             setUserPermissions(ROLE_PERMISSIONS[userData.role] || []);
           } catch (error) {
-            console.error('Failed to fetch user profile:', error);
-            localStorage.removeItem('token');
+            console.error("Failed to fetch user profile:", error);
+            localStorage.removeItem("token");
             setIsAuthenticated(false);
             setUser(null);
           }
         }
       } catch (error) {
-        console.error('Authentication check failed:', error);
-        localStorage.removeItem('token');
+        console.error("Authentication check failed:", error);
+        localStorage.removeItem("token");
       } finally {
         setIsLoading(false);
       }
@@ -154,9 +147,9 @@ export const AuthProvider = ({ children }) => {
       // Call login API
       const response = await loginApi(credentials);
       const { access_token } = response.data;
-      
-      localStorage.setItem('token', access_token);
-      
+
+      localStorage.setItem("token", access_token);
+
       // Get user profile using the new token
       try {
         const userResponse = await getProfile();
@@ -166,26 +159,28 @@ export const AuthProvider = ({ children }) => {
         // Set permissions based on user role
         setUserPermissions(ROLE_PERMISSIONS[userData.role] || []);
       } catch (profileError) {
-        console.error('Failed to fetch user profile:', profileError);
-        localStorage.removeItem('token');
-        return { 
-          success: false, 
-          error: 'Failed to get user profile after login'
+        console.error("Failed to fetch user profile:", profileError);
+        localStorage.removeItem("token");
+        return {
+          success: false,
+          error: "Failed to get user profile after login",
         };
       }
-      
+
       return { success: true };
     } catch (error) {
-      console.error('Login failed:', error);
-      return { 
-        success: false, 
-        error: error.response?.data?.detail || 'Đăng nhập thất bại. Vui lòng kiểm tra thông tin đăng nhập.' 
+      console.error("Login failed:", error);
+      return {
+        success: false,
+        error:
+          error.response?.data?.detail ||
+          "Đăng nhập thất bại. Vui lòng kiểm tra thông tin đăng nhập.",
       };
     }
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
+    localStorage.removeItem("token");
     setIsAuthenticated(false);
     setUser(null);
     setUserPermissions([]);

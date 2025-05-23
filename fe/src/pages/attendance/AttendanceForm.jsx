@@ -2,9 +2,9 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import {
-    fetchClasses,
-    fetchStudentsByClass,
-    submitAttendance
+  fetchClasses,
+  fetchStudentsByClass,
+  submitBulkAttendance
 } from '../../services/api';
 
 const AttendanceForm = () => {
@@ -61,12 +61,12 @@ const AttendanceForm = () => {
       const response = await fetchStudentsByClass(classId);
       const studentsList = response?.data || mockStudents;
       setStudents(studentsList);
-      
-      // Initialize attendance records for all students
+        // Initialize attendance records for all students
       const initialAttendance = studentsList.map(student => ({
-        studentId: student.id,
-        status: 'Present',  // Default to present
-        notes: ''
+        student_id: student.id,
+        status: 'present',  // Default to present - lowercase to match backend enum
+        notes: '',
+        minutes_late: 0
       }));
       
       setAttendanceRecords(initialAttendance);
@@ -77,41 +77,45 @@ const AttendanceForm = () => {
       setStudentsLoading(false);
       // For development, use mock data if API fails
       setStudents(mockStudents);
-      
-      // Initialize attendance records for all students
+        // Initialize attendance records for all students
       const initialAttendance = mockStudents.map(student => ({
-        studentId: student.id,
-        status: 'Present',  // Default to present
-        notes: ''
+        student_id: student.id,
+        status: 'present',  // Default to present - lowercase to match backend
+        notes: '',
+        minutes_late: 0
       }));
       
       setAttendanceRecords(initialAttendance);
     }
   };
-  
-  const handleStatusChange = (studentId, status) => {
+    const handleStatusChange = (studentId, status) => {
+    // Map UI-friendly status names to backend enum values
+    const statusMap = {
+      'Present': 'present',
+      'Absent': 'absent',
+      'Late': 'late'
+    };
+    
     setAttendanceRecords(prevRecords => 
       prevRecords.map(record => 
-        record.studentId === studentId 
-          ? { ...record, status } 
+        record.student_id === studentId 
+          ? { ...record, status: statusMap[status] || status.toLowerCase() } 
           : record
       )
     );
   };
-  
-  const handleNotesChange = (studentId, notes) => {
+    const handleNotesChange = (studentId, notes) => {
     setAttendanceRecords(prevRecords => 
       prevRecords.map(record => 
-        record.studentId === studentId 
+        record.student_id === studentId 
           ? { ...record, notes } 
           : record
       )
     );
   };
-  
-  const handleAllPresent = () => {
+    const handleAllPresent = () => {
     setAttendanceRecords(prevRecords => 
-      prevRecords.map(record => ({ ...record, status: 'Present' }))
+      prevRecords.map(record => ({ ...record, status: 'present' }))
     );
   };
   
@@ -130,16 +134,15 @@ const AttendanceForm = () => {
     
     setError(null);
     setSubmitting(true);
-    
-    const attendanceData = {
-      classId,
+      const attendanceData = {
+      class_id: parseInt(classId),
       date,
       records: attendanceRecords
     };
     
     try {
       // In production, replace with actual API call
-      await submitAttendance(attendanceData);
+      await submitBulkAttendance(attendanceData);
       navigate('/attendance');
     } catch (err) {
       console.error('Error submitting attendance:', err);
@@ -259,13 +262,18 @@ const AttendanceForm = () => {
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {students.map((student) => {
+                    <tbody className="bg-white divide-y divide-gray-200">                      {students.map((student) => {
                         const attendance = attendanceRecords.find(
-                          record => record.studentId === student.id
-                        ) || { status: 'Present', notes: '' };
+                          record => record.student_id === student.id
+                        ) || { status: 'present', notes: '' };
                         
-                        return (
+                        // Map backend status values to display values
+                        const displayStatus = {
+                          'present': 'Present',
+                          'absent': 'Absent',
+                          'late': 'Late'
+                        };
+                          return (
                           <tr key={student.id}>
                             <td className="px-6 py-4 whitespace-nowrap">
                               <div className="text-sm font-medium text-gray-900">
@@ -279,7 +287,7 @@ const AttendanceForm = () => {
                                     type="radio"
                                     name={`status-${student.id}`}
                                     value="Present"
-                                    checked={attendance.status === 'Present'}
+                                    checked={attendance.status === 'present'}
                                     onChange={() => handleStatusChange(student.id, 'Present')}
                                     className="form-radio h-4 w-4 text-green-600"
                                   />
@@ -291,7 +299,7 @@ const AttendanceForm = () => {
                                     type="radio"
                                     name={`status-${student.id}`}
                                     value="Absent"
-                                    checked={attendance.status === 'Absent'}
+                                    checked={attendance.status === 'absent'}
                                     onChange={() => handleStatusChange(student.id, 'Absent')}
                                     className="form-radio h-4 w-4 text-red-600"
                                   />
@@ -303,13 +311,35 @@ const AttendanceForm = () => {
                                     type="radio"
                                     name={`status-${student.id}`}
                                     value="Late"
-                                    checked={attendance.status === 'Late'}
+                                    checked={attendance.status === 'late'}
                                     onChange={() => handleStatusChange(student.id, 'Late')}
                                     className="form-radio h-4 w-4 text-yellow-600"
                                   />
                                   <span className="ml-2 text-sm text-yellow-700">Late</span>
                                 </label>
                               </div>
+                              
+                              {attendance.status === 'late' && (
+                                <div className="mt-2">
+                                  <label className="block text-xs text-gray-600 mb-1">Minutes late:</label>
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    value={attendance.minutes_late || 0}
+                                    onChange={(e) => {
+                                      const minutes = parseInt(e.target.value) || 0;
+                                      setAttendanceRecords(prevRecords => 
+                                        prevRecords.map(record => 
+                                          record.student_id === student.id 
+                                            ? { ...record, minutes_late: minutes } 
+                                            : record
+                                        )
+                                      );
+                                    }}
+                                    className="w-20 px-2 py-1 text-sm border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                  />
+                                </div>
+                              )}
                             </td>
                             <td className="px-6 py-4">
                               <input

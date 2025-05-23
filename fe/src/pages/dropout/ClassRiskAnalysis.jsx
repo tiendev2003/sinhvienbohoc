@@ -16,6 +16,7 @@ const ClassRiskAnalysis = () => {
       
       try {
         const response = await dropoutRiskService.getClassRiskAnalytics(id);
+        console.log('Class Risk Data:', response.data);
         setClassData(response.data);
         setLoading(false);
       } catch (err) {
@@ -49,9 +50,8 @@ const ClassRiskAnalysis = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold">{classData.className}: Phân tích Nguy cơ Bỏ học</h1>
-          <p className="text-gray-600">Mã lớp: {classData.classCode} | Giáo viên: {classData.teacherName}</p>
+        <div>          <h1 className="text-2xl font-bold">{classData.className}: Phân tích Nguy cơ Bỏ học</h1>
+          <p className="text-gray-600">Mã lớp: {classData.classId} | Giáo viên: {classData.teacherName}</p>
         </div>
         <Link to={`/classes/${id}`}>
           <button className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
