@@ -83,7 +83,7 @@ async def get_current_active_user(current_user: User = Depends(get_current_user)
         )
     return current_user
 
-def check_admin_role(current_user: User = Depends(get_current_active_user)) -> User:
+async def check_admin_role(current_user: User = Depends(get_current_active_user)) -> User:
     """
     Kiểm tra user có phải admin không
     """
@@ -94,7 +94,7 @@ def check_admin_role(current_user: User = Depends(get_current_active_user)) -> U
         )
     return current_user
 
-def check_teacher_role(current_user: User = Depends(get_current_active_user)) -> User:
+async def check_teacher_role(current_user: User = Depends(get_current_active_user)) -> User:
     """
     Kiểm tra user có phải teacher không
     """
@@ -105,7 +105,7 @@ def check_teacher_role(current_user: User = Depends(get_current_active_user)) ->
         )
     return current_user
 
-def check_counselor_role(current_user: User = Depends(get_current_active_user)) -> User:
+async def check_counselor_role(current_user: User = Depends(get_current_active_user)) -> User:
     """
     Kiểm tra user có phải counselor không
     """

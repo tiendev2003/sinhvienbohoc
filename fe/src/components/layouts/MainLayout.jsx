@@ -2,16 +2,16 @@ import {
   AcademicCapIcon,
   Bars3Icon,
   BookOpenIcon,
-  ChartBarIcon,
   ChevronDoubleLeftIcon,
   ChevronDoubleRightIcon,
   Cog6ToothIcon as CogIcon,
+  CpuChipIcon,
   DocumentIcon,
   ExclamationCircleIcon,
   HomeIcon,
   ArrowRightOnRectangleIcon as LogoutIcon,
   UserGroupIcon,
-  UserIcon,
+  UserIcon
 } from "@heroicons/react/24/outline";
 import { useEffect, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router";
@@ -66,6 +66,7 @@ const MainLayout = ({ isAuthenticated }) => {
           label: "Thông tin cá nhân",
           permission: PERMISSIONS.DASHBOARD,
           icon: UserIcon,
+          roles: ["student"], // Only visible to these roles
         },
       ],
     },
@@ -84,7 +85,7 @@ const MainLayout = ({ isAuthenticated }) => {
           label: "Lớp Học Của Tôi",
           permission: PERMISSIONS.DASHBOARD,
           icon: AcademicCapIcon,
-      
+          roles: ["student"], // Only visible to these roles
         },
         {
           path: "/classes",
@@ -125,11 +126,13 @@ const MainLayout = ({ isAuthenticated }) => {
           permission: PERMISSIONS.DISCIPLINARY_VIEW,
           icon: ExclamationCircleIcon,
         },
+        
         {
-          path: "/dropout-risk",
-          label: "Nguy Cơ Bỏ Học",
+          path: "/dropout-risk/ml-analysis",
+          label: "Phân Tích ML",
           permission: PERMISSIONS.DROPOUT_RISK_VIEW,
-          icon: ChartBarIcon,
+          icon: CpuChipIcon,
+          roles: ["admin"], // Only admin and teachers can see ML analysis
         },
       ],
     },

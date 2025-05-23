@@ -5,6 +5,7 @@ import numpy as np
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, roc_auc_score, classification_report, confusion_matrix
 from app.models.models import Student, Grade, DisciplinaryRecord, ClassStudent
 from app.crud.dropout_risk import create_dropout_risk
 from app.schemas.schemas import DropoutRiskCreate
@@ -195,15 +196,32 @@ class DropoutRiskPredictionService:
         
         # Split data for training and testing
         X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)
-        
-        # Train a model
+          # Train a model
         model = GradientBoostingClassifier(n_estimators=100, learning_rate=0.1, max_depth=3, random_state=42)
         model.fit(X_train, y_train)
         
-        # Store the model and scaler
+        # Evaluate the model
+        y_pred = model.predict(X_test)
+        y_pred_proba = model.predict_proba(X_test)[:, 1]
+        
+        # Calculate metrics
+        accuracy = accuracy_score(y_test, y_pred)
+        roc_auc = roc_auc_score(y_test, y_pred_proba) if len(np.unique(y_test)) > 1 else 0.0
+        
+        print(f"Model Performance Metrics:")
+        print(f"Accuracy: {accuracy:.4f}")
+        print(f"ROC-AUC: {roc_auc:.4f}")
+        print("\nClassification Report:")
+        print(classification_report(y_test, y_pred))
+        print("\nConfusion Matrix:")
+        print(confusion_matrix(y_test, y_pred))
+        
+        # Store the model and scaler with metrics
         model_data = {
             "model": model,
             "scaler": scaler,
+            "accuracy": accuracy,
+            "roc_auc": roc_auc,
             "features": [
                 "attendance_rate",
                 "previous_academic_warning",

@@ -28,7 +28,21 @@ const HighRiskStudentsTable = ({ students }) => {
                   {student.riskScore}
                 </span>
               </td>
-              <td className="px-4 py-2 whitespace-nowrap text-sm">{student.mainFactors}</td>
+              <td className="px-4 py-2">
+                {student.mainFactors.split(', ').map((factor, index) => (
+                  <span key={index} className={`inline-block mr-1 mb-1 px-2 py-1 text-xs font-medium rounded-full ${
+                    factor.includes('Điểm số thấp') || factor.includes('Môn học F') ? 'bg-red-100 text-red-800' :
+                    factor.includes('Điểm danh kém') ? 'bg-yellow-100 text-yellow-800' :
+                    factor.includes('Kỷ luật') ? 'bg-purple-100 text-purple-800' :
+                    factor.includes('Kinh tế') ? 'bg-green-100 text-green-800' :
+                    factor.includes('Hiệu suất giảm') || factor.includes('Xu hướng') ? 'bg-blue-100 text-blue-800' :
+                    factor.includes('Bỏ lớp') ? 'bg-orange-100 text-orange-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {factor}
+                  </span>
+                ))}
+              </td>
             </tr>
           ))}
           {students.length === 0 && (

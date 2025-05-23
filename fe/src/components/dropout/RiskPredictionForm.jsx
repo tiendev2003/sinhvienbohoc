@@ -6,16 +6,18 @@ const RiskPredictionForm = ({ studentId, onPredictionComplete }) => {
   const [error, setError] = useState(null);
   const [predictionResult, setPredictionResult] = useState(null);
 
-  const handlePredict = async () => {
+  const  handlePredict = async () => {
     setLoading(true);
     setError(null);
     setPredictionResult(null);
     
     try {
       const response = await dropoutRiskService.predictRisk(studentId);
-      setPredictionResult(response.data);
+      // Handle ML response format
+      const predictionData = response.data?.prediction || response.data;
+      setPredictionResult(predictionData);
       if (onPredictionComplete) {
-        onPredictionComplete(response.data);
+        onPredictionComplete(predictionData);
       }
     } catch (err) {
       console.error('Prediction error:', err);
@@ -25,16 +27,18 @@ const RiskPredictionForm = ({ studentId, onPredictionComplete }) => {
     }
   };
 
-  const handleRecalculate = async () => {
+  const  handleRecalculate = async () => {
     setLoading(true);
     setError(null);
     setPredictionResult(null);
     
     try {
       const response = await dropoutRiskService.recalculateRisk(studentId);
-      setPredictionResult(response.data);
+      // Handle ML response format
+      const predictionData = response.data?.prediction || response.data;
+      setPredictionResult(predictionData);
       if (onPredictionComplete) {
-        onPredictionComplete(response.data);
+        onPredictionComplete(predictionData);
       }
     } catch (err) {
       console.error('Recalculation error:', err);

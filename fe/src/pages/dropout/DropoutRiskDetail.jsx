@@ -17,20 +17,22 @@ const DropoutRiskDetail = () => {
   const { hasPermission } = useAuth();
   useEffect(() => {
     const getStudentRiskData = async () => {
-      try {
+      try {        
         setLoading(true);
         const riskResponse = await dropoutRiskService.getRiskById(id);
-        if (!riskResponse?.data) {
+        // Handle ML response format
+        const riskData = riskResponse?.data?.prediction || riskResponse?.data;
+        if (!riskData) {
           throw new Error("Không tìm thấy đánh giá nguy cơ");
         }
-
-        // Get historical risks for charts
-        const historicalResponse = await dropoutRiskService.getAllRisks({
-          student_id: riskResponse.data.student_id,
-        });
-
+        
+        // Get ML prediction risk data with historical information
+        const historicalResponse = await dropoutRiskService.predictRiskML(
+          riskData.student_id
+        );        
+        
         // Format student data
-        const student = riskResponse.data.student;
+        const student = riskData.student;
         const formattedStudentData = {
           id: student.student_id,
           name: student.user?.full_name || "N/A",
@@ -44,25 +46,22 @@ const DropoutRiskDetail = () => {
           enrollmentDate: new Date(student.entry_year, 8, 1).toLocaleDateString(
             "vi-VN"
           ),
-        };
+        }; 
+        
+        // Process historical data from ML prediction
+        const historicalData = historicalResponse.data?.historical_risks || [];
 
         // Format risk data
         const formattedRiskData = {
-          riskScore: riskResponse.data.risk_percentage,
-          riskLevel: getRiskLevel(riskResponse.data.risk_percentage),
+          riskScore: riskData.risk_percentage,
+          riskLevel: getRiskLevel(riskData.risk_percentage),
           lastUpdated: new Date(
-            riskResponse.data.analysis_date
+            riskData.analysis_date
           ).toLocaleDateString("vi-VN"),
-          riskFactors: formatRiskFactors(riskResponse.data.risk_factors),
-          academicHistory: generateAcademicHistory(
-            historicalResponse.data || []
-          ),
-          attendanceHistory: generateAttendanceHistory(
-            historicalResponse.data || []
-          ),
-          behaviorHistory: generateBehaviorHistory(
-            historicalResponse.data || []
-          ),
+          riskFactors: formatRiskFactors(riskData.risk_factors),
+          academicHistory: generateAcademicHistory(historicalData),
+          attendanceHistory: generateAttendanceHistory(historicalData),
+          behaviorHistory: generateBehaviorHistory(historicalData),
         };
 
         setStudentData(formattedStudentData);

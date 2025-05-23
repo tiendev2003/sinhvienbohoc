@@ -8,6 +8,7 @@ from app.db.database import get_db
 from app.models.models import User, Class, Student, DropoutRisk, ClassStudent
 from app.schemas.schemas import ClassResponse
 from app.services.auth import get_current_active_user, check_teacher_role
+from app.services.dropout_risk_ml_service_fixed import MLDropoutRiskPredictionService
 
 router = APIRouter()
 
@@ -18,8 +19,9 @@ async def get_class_dropout_risk_analytics(
     current_user: User = Depends(get_current_active_user)
 ):
     """
-    Get analytics for dropout risks in a specific class
-    """    # Check if class exists
+    Get analytics for dropout risks in a specific class using ML model prediction
+    """
+    # Check if class exists
     class_obj = db.query(Class).filter(Class.class_id == class_id).first()
     if not class_obj:
         raise HTTPException(status_code=404, detail="Class not found")
@@ -56,7 +58,10 @@ async def get_class_dropout_risk_analytics(
     
     student_ids = [s.student_id for s in students_in_class]
     
-    # Get latest risk assessment for each student
+    # Initialize the ML service for more accurate risk prediction
+    ml_service = MLDropoutRiskPredictionService(db)
+    
+    # Get risk assessment for each student using ML prediction
     student_risks = []
     high_risk_students = []
     
@@ -65,63 +70,40 @@ async def get_class_dropout_risk_analytics(
     high_risk_count = 0
     total_risk_percentage = 0
     
+    # Factor mapping for displaying risk factors in UI
+    factor_mapping = {
+        "low_gpa": "Điểm số thấp",
+        "poor_attendance": "Điểm danh kém",
+        "disciplinary_issues": "Vấn đề kỷ luật",
+        "financial_issues": "Khó khăn kinh tế",
+        "failed_subjects": "Môn học F",
+        "academic_warning": "Cảnh báo học tập",
+        "dropped_classes": "Lịch sử bỏ lớp",
+        "declining_performance": "Hiệu suất giảm sút",
+        "attendance_trend": "Xu hướng điểm danh giảm"
+    }
+    
     for student in students_in_class:
-        # Get latest risk assessment
-        latest_risk = db.query(DropoutRisk).filter(
-            DropoutRisk.student_id == student.student_id
-        ).order_by(DropoutRisk.analysis_date.desc()).first()
+        # Use ML model to predict risk for this student
+        prediction_result = ml_service.predict_dropout_risk(student.student_id)
         
-        if latest_risk:
-            risk_percentage = latest_risk.risk_percentage
+        if prediction_result:
+            risk_percentage = prediction_result["risk_percentage"]
             total_risk_percentage += risk_percentage
             
-            # Parse risk factors early
-            risk_factors = latest_risk.risk_factors or {}
-            if isinstance(risk_factors, str):
-                try:
-                    risk_factors = json.loads(risk_factors)
-                except json.JSONDecodeError:
-                    risk_factors = {}
+            # Get risk factors from ML prediction
+            risk_factors = prediction_result["risk_factors"]
             
             # Categorize risk levels
             if risk_percentage >= 75:
                 high_risk_count += 1
                 
-                # Factor mapping
-                factor_mapping = {
-                    "low_gpa": "Điểm số thấp",
-                    "poor_attendance": "Điểm danh kém",
-                    "disciplinary_issues": "Vấn đề kỷ luật",
-                    "financial_issues": "Khó khăn kinh tế",
-                    "failed_subjects": "Môn học F",
-                    "academic_warning": "Cảnh báo học tập",
-                    "dropped_classes": "Lịch sử bỏ lớp",
-                    "academic_performance": "Điểm số thấp",
-                    "attendance": "Điểm danh kém",
-                    "disciplinary_records": "Vấn đề kỷ luật",
-                    "family_income": "Khó khăn kinh tế",
-                    "previous_warnings": "Cảnh báo học tập trước"
-                }
-                
                 main_factors = []
                 
-                # Handle boolean format
+                # Extract main risk factors from the ML prediction
                 for factor, is_active in risk_factors.items():
                     if isinstance(is_active, bool) and is_active and factor in factor_mapping:
                         main_factors.append(factor_mapping[factor])
-                
-                # Handle numeric/value format
-                if not main_factors:  # Only check these if no boolean factors were found
-                    if risk_factors.get('academic_performance', 0) < 6:
-                        main_factors.append(factor_mapping['academic_performance'])
-                    if risk_factors.get('attendance', 100) < 80:
-                        main_factors.append(factor_mapping['attendance'])
-                    if risk_factors.get('disciplinary_records', 0) > 0:
-                        main_factors.append(factor_mapping['disciplinary_records'])
-                    if risk_factors.get('family_income') == 'low':
-                        main_factors.append(factor_mapping['family_income'])
-                    if risk_factors.get('previous_warnings', 0) > 0:
-                        main_factors.append(factor_mapping['previous_warnings'])
                 
                 # Default factor based on risk percentage if no other factors
                 if not main_factors:

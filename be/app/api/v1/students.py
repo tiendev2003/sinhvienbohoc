@@ -330,3 +330,27 @@ async def read_student_classes(
     )
     
     return student_classes
+
+@router.get("/user/{user_id}", response_model=StudentResponse)
+async def read_student_by_user_id(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Lấy thông tin sinh viên theo user_id
+    Sinh viên chỉ được xem thông tin của bản thân
+    """
+    if current_user.role == "student" and current_user.user_id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Không đủ quyền truy cập thông tin sinh viên khác"
+        )
+    
+    db_student = get_student_by_user_id(db, user_id=user_id)
+    if db_student is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail="Không tìm thấy thông tin sinh viên"
+        )
+    return db_student

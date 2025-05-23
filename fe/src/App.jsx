@@ -48,6 +48,7 @@ import DropoutInterventions from "./pages/dropout/DropoutInterventions";
 import DropoutRiskDashboard from "./pages/dropout/DropoutRiskDashboard";
 import DropoutRiskDetail from "./pages/dropout/DropoutRiskDetail";
 import HighRiskStudentsList from "./pages/dropout/HighRiskStudentsList";
+import MLDropoutRiskDashboard from "./pages/dropout/MLDropoutRiskDashboard";
 
 // Reports Pages
 import AcademicPerformanceReport from "./pages/reports/AcademicPerformanceReport";
@@ -317,6 +318,14 @@ function App() {
             element={
               <ProtectedRoute requiredPermission="dropout_risk_view">
                 <HighRiskStudentsList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dropout-risk/ml-analysis"
+            element={
+              <ProtectedRoute requiredPermission="dropout_risk_view">
+                <MLDropoutRiskDashboard />
               </ProtectedRoute>
             }
           />

@@ -10,8 +10,11 @@ from app.api.v1.grades import router as grades_router
 from app.api.v1.attendance import router as attendance_router
 from app.api.v1.disciplinary_records import router as disciplinary_records_router
 from app.api.v1.dropout_risks import router as dropout_risks_router
+from app.api.v1.dropout_risk_ml import router as dropout_risk_ml_router
+from app.api.v1.model_performance import router as model_performance_router
 from app.api.v1.uploads import router as uploads_router
 from app.api.v1.class_dropout_risk import router as class_dropout_risk_router
+from app.api.v1.class_dropout_risk_ml import router as class_dropout_risk_ml_router
 from app.api.v1.endpoints.class_subject import router as class_subject_router
 
 api_router = APIRouter()
@@ -35,6 +38,9 @@ api_router.include_router(classes_router, prefix="/classes", tags=["classes"])
 # Class dropout risk routes
 api_router.include_router(class_dropout_risk_router, prefix="/classes", tags=["class-dropout-risks"])
 
+# Class dropout risk ML routes
+api_router.include_router(class_dropout_risk_ml_router, prefix="/classes", tags=["class-dropout-risks-ml"])
+
 # Subject routes
 api_router.include_router(subjects_router, prefix="/subjects", tags=["subjects"])
 
@@ -52,6 +58,12 @@ api_router.include_router(disciplinary_records_router, prefix="/disciplinary-rec
 
 # Dropout risk routes
 api_router.include_router(dropout_risks_router, prefix="/dropout-risks", tags=["dropout_risks"])
+
+# Dropout risk ML routes
+api_router.include_router(dropout_risk_ml_router, prefix="/dropout-risks-ml", tags=["dropout_risks_ml"])
+
+# Model performance routes
+api_router.include_router(model_performance_router, prefix="/model-performance", tags=["model_performance"])
 
 # Upload routes
 api_router.include_router(uploads_router, prefix="/uploads", tags=["uploads"])

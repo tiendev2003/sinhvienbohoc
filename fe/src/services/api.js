@@ -2,7 +2,7 @@ import axios from "axios";
 
 // Create axios instance with base URL and default headers
 const api = axios.create({
-  baseURL: "http://localhost:8001/api/v1",
+  baseURL: "http://localhost:8000/api/v1",
   headers: {
     "Content-Type": "application/json",
   },
@@ -46,6 +46,8 @@ export const updateProfile = (data) => api.put("/users/me", data);
 // Student APIs
 export const fetchStudents = (params) => api.get("/students", { params });
 export const fetchStudentById = (id) => api.get(`/students/${id}`);
+export const fetchStudentByUserId = (userId) =>
+  api.get(`/students/user/${userId}`);
 export const createStudent = (data) => api.post("/students", data);
 export const updateStudent = (id, data) => api.put(`/students/${id}`, data);
 export const deleteStudent = (id) => api.delete(`/students/${id}`);
@@ -57,11 +59,13 @@ export const fetchStudentDisciplinary = (id) =>
   api.get(`/students/${id}/disciplinary`);
 export const fetchStudentDropoutRisk = (id) =>
   api.get(`/students/${id}/dropout-risk`);
-export const getStudentClasses = (studentId) => api.get(`/students/${studentId}/classes`);
+export const getStudentClasses = (studentId) =>
+  api.get(`/students/${studentId}/classes`);
 
 // Student Profile APIs
-export const getStudentProfile = () => api.get('/students/profile');
-export const updateStudentProfile = (data) => api.put('/students/profile', data);
+export const getStudentProfile = () => api.get("/students/profile");
+export const updateStudentProfile = (data) =>
+  api.put("/students/profile", data);
 
 // Class APIs
 export const fetchClasses = (params) => api.get("/classes", { params });
@@ -110,8 +114,10 @@ export const fetchAttendanceByFilters = ({ class_id, date, status }) => {
 export const fetchAttendanceByStudent = (studentId, params) =>
   api.get(`/attendance/student/${studentId}`, { params });
 export const submitAttendance = (data) => api.post("/attendance", data);
-export const updateAttendance = (id, data) => api.put(`/attendance/${id}`, data);
-export const submitBulkAttendance = (data) => api.post("/attendance/bulk", data);
+export const updateAttendance = (id, data) =>
+  api.put(`/attendance/${id}`, data);
+export const submitBulkAttendance = (data) =>
+  api.post("/attendance/bulk", data);
 export const fetchAttendanceByClass = (classId, date) =>
   api.get(`/attendance/class/${classId}`, { params: { date } });
 export const fetchAttendanceStats = (dateRange) =>

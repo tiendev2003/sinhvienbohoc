@@ -18,8 +18,7 @@ const HighRiskStudentsList = () => {
       setLoading(true);
       setError(null);
 
-      try {
-        const response = await dropoutRiskService.getAllRisks({
+      try {        const response = await dropoutRiskService.getAllRisks({
           min_risk: filters.minRisk,
           class_id: filters.classId || undefined,
         });
@@ -29,8 +28,11 @@ const HighRiskStudentsList = () => {
         // Process the data for display
         let processedData = [];
 
-        if (response.data && Array.isArray(response.data)) {
-          processedData = response.data
+        // Handle potential ML format differences
+        const riskData = response.data?.predictions || response.data;
+
+        if (riskData && Array.isArray(riskData)) {
+          processedData = riskData
             .map((risk) => {
               // Validate student data exists
               if (!risk.student) {
@@ -364,15 +366,16 @@ const HighRiskStudentsList = () => {
                   ).value;
                   if (studentId) {
                     try {
-                      setLoading(true);
-                      const response = await dropoutRiskService.predictRisk(
+                      setLoading(true);                      const response = await dropoutRiskService.predictRisk(
                         studentId
                       );
-                      if (response && response.data) {
+                      // Handle ML response format
+                      const predictionData = response.data?.prediction || response.data;
+                      if (response && predictionData) {
                         alert(
-                          `Đã dự báo thành công cho sinh viên ${studentId}. Nguy cơ bỏ học: ${response.data.risk_percentage.toFixed(
+                          `Đã dự báo thành công cho sinh viên ${studentId}. Nguy cơ bỏ học: ${predictionData.risk_percentage?.toFixed(
                             1
-                          )}%`
+                          ) || "N/A"}%`
                         );
 
                         // Refresh the list
@@ -380,14 +383,14 @@ const HighRiskStudentsList = () => {
                           await dropoutRiskService.getAllRisks({
                             min_risk: filters.minRisk,
                             class_id: filters.classId || undefined,
-                          });
-
-                        // Process the data again...
+                          });                        // Process the data again...
+                        // Handle ML format differences
+                        const riskData = risksResponse.data?.predictions || risksResponse.data;
                         if (
-                          risksResponse.data &&
-                          Array.isArray(risksResponse.data)
+                          riskData &&
+                          Array.isArray(riskData)
                         ) {
-                          const newProcessedData = risksResponse.data
+                          const newProcessedData = riskData
                             .map((risk) => {
                               if (!risk.student) return null;
 
